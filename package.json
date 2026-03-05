@@ -1,0 +1,256 @@
+{
+  "name": "anyskill",
+  "displayName": "AnySkill",
+  "description": "🧠 你的私人 AI 技能空间 — 在 VS Code 中管理、加载、分享 AI 技能",
+  "version": "0.3.1",
+  "icon": "resources/anyskill-icon.png",
+  "publisher": "anyskill",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "ai",
+    "skills",
+    "anyskill",
+    "agent",
+    "prompt"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lanyijianke/AnySkill"
+  },
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "anyskill-sidebar",
+          "title": "AnySkill",
+          "icon": "resources/anyskill-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "anyskill-sidebar": [
+        {
+          "id": "anyskillSkills",
+          "name": "我的技能",
+          "icon": "$(symbol-method)"
+        },
+        {
+          "id": "anyskillPacks",
+          "name": "组合包",
+          "icon": "$(package)"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "anyskillSkills",
+        "contents": "欢迎使用 AnySkill！\n你的私人 AI 技能空间。\n[初始化配置](command:anyskill.init)\n[导入已有技能](command:anyskill.importSkill)",
+        "when": "!anyskill.configured"
+      }
+    ],
+    "commands": [
+      {
+        "command": "anyskill.init",
+        "title": "AnySkill: 初始化配置",
+        "icon": "$(gear)"
+      },
+      {
+        "command": "anyskill.refreshSkills",
+        "title": "AnySkill: 刷新技能列表",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "anyskill.loadSkill",
+        "title": "AnySkill: 加载技能到编辑器",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "anyskill.downloadSkill",
+        "title": "AnySkill: 下载技能到本地",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "anyskill.syncAll",
+        "title": "AnySkill: 同步全部技能",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "anyskill.uploadSkill",
+        "title": "AnySkill: 上传技能",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "anyskill.deleteSkill",
+        "title": "AnySkill: 删除技能",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "anyskill.viewSkillDetail",
+        "title": "AnySkill: 查看技能详情",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "anyskill.installPack",
+        "title": "AnySkill: 安装组合包",
+        "icon": "$(desktop-download)"
+      },
+      {
+        "command": "anyskill.refreshPacks",
+        "title": "AnySkill: 刷新组合包",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "anyskill.checkUpdate",
+        "title": "AnySkill: 检查更新",
+        "icon": "$(arrow-up)"
+      },
+      {
+        "command": "anyskill.importSkill",
+        "title": "AnySkill: 导入已有技能",
+        "icon": "$(file-add)"
+      },
+      {
+        "command": "anyskill.welcome",
+        "title": "AnySkill: 欢迎页",
+        "icon": "$(home)"
+      },
+      {
+        "command": "anyskill.createFolder",
+        "title": "AnySkill: 新建分类文件夹",
+        "icon": "$(new-folder)"
+      },
+      {
+        "command": "anyskill.deleteFolder",
+        "title": "AnySkill: 删除分类文件夹",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "anyskill.moveSkill",
+        "title": "AnySkill: 移动技能到文件夹",
+        "icon": "$(move)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "anyskill.refreshSkills",
+          "when": "view == anyskillSkills",
+          "group": "navigation"
+        },
+        {
+          "command": "anyskill.uploadSkill",
+          "when": "view == anyskillSkills",
+          "group": "navigation"
+        },
+        {
+          "command": "anyskill.importSkill",
+          "when": "view == anyskillSkills",
+          "group": "navigation"
+        },
+        {
+          "command": "anyskill.syncAll",
+          "when": "view == anyskillSkills",
+          "group": "navigation"
+        },
+        {
+          "command": "anyskill.refreshPacks",
+          "when": "view == anyskillPacks",
+          "group": "navigation"
+        },
+        {
+          "command": "anyskill.createFolder",
+          "when": "view == anyskillSkills",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "anyskill.viewSkillDetail",
+          "when": "view == anyskillSkills && viewItem == skill",
+          "group": "inline"
+        },
+        {
+          "command": "anyskill.downloadSkill",
+          "when": "view == anyskillSkills && viewItem == skill",
+          "group": "1_actions@1"
+        },
+        {
+          "command": "anyskill.loadSkill",
+          "when": "view == anyskillSkills && viewItem == skill",
+          "group": "1_actions@2"
+        },
+        {
+          "command": "anyskill.deleteSkill",
+          "when": "view == anyskillSkills && viewItem == skill",
+          "group": "2_danger@1"
+        },
+        {
+          "command": "anyskill.installPack",
+          "when": "view == anyskillPacks && viewItem == pack",
+          "group": "inline"
+        },
+        {
+          "command": "anyskill.downloadSkill",
+          "when": "view == anyskillPacks && viewItem == packSkill",
+          "group": "inline"
+        },
+        {
+          "command": "anyskill.moveSkill",
+          "when": "view == anyskillSkills && viewItem == skill",
+          "group": "1_actions@3"
+        },
+        {
+          "command": "anyskill.deleteFolder",
+          "when": "view == anyskillSkills && viewItem == category",
+          "group": "inline"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "AnySkill",
+      "properties": {
+        "anyskill.repo": {
+          "type": "string",
+          "default": "",
+          "description": "GitHub 技能仓库地址 (格式: 用户名/仓库名)"
+        },
+        "anyskill.branch": {
+          "type": "string",
+          "default": "main",
+          "description": "仓库分支"
+        },
+        "anyskill.localPath": {
+          "type": "string",
+          "default": "",
+          "description": "本地仓库克隆路径"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --sourcemap",
+    "watch": "npm run compile -- --watch",
+    "package": "npm run compile -- --minify",
+    "vscode:prepublish": "npm run package",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.20.0",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "@vscode/codicons": "^0.0.44",
+    "simple-git": "^3.22.0"
+  }
+}
