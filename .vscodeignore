@@ -8,3 +8,5 @@ node_modules/**
 tsconfig.json
 **/*.ts
 **/*.map
+.ovsx_token
+.git/**

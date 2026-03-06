@@ -17,6 +17,7 @@ import {
 import { installPackCommand } from './commands/packs';
 import { checkUpdateCommand } from './commands/version';
 import { discoverConfig } from './config';
+import { addCommitPush } from './git';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('AnySkill extension is now active!');
@@ -24,6 +25,11 @@ export function activate(context: vscode.ExtensionContext) {
     // Set configured context for welcome view
     const config = discoverConfig();
     vscode.commands.executeCommand('setContext', 'anyskill.configured', !!config);
+
+    // Auto-repair: ensure generate-index.js exists if CI workflow is present
+    if (config?.localPath) {
+        autoRepairRepo(config.localPath, config.branch).catch(() => { });
+    }
 
     // ── TreeView Providers ─────────────────────
     const skillsProvider = new SkillsTreeProvider();
@@ -172,4 +178,54 @@ export function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {
     console.log('AnySkill extension deactivated');
+}
+
+/**
+ * Auto-repair: if user's repo has .github/workflows/build-index.yml
+ * but is missing generate-index.js, download it from the AnySkill template repo.
+ */
+async function autoRepairRepo(localPath: string, branch: string = 'main'): Promise<void> {
+    const fs = await import('fs');
+    const path = await import('path');
+
+    const workflowPath = path.join(localPath, '.github', 'workflows', 'build-index.yml');
+    const scriptPath = path.join(localPath, 'generate-index.js');
+
+    // Only repair if workflow exists but script is missing
+    if (!fs.existsSync(workflowPath) || fs.existsSync(scriptPath)) {
+        return;
+    }
+
+    console.log('[AnySkill] Auto-repair: generate-index.js is missing, downloading...');
+
+    try {
+        const https = await import('https');
+        const url = 'https://raw.githubusercontent.com/lanyijianke/AnySkill/main/generate-index.js';
+
+        const content = await new Promise<string>((resolve, reject) => {
+            https.get(url, { headers: { 'User-Agent': 'AnySkill-VSCode' } }, (res: any) => {
+                if (res.statusCode === 301 || res.statusCode === 302) {
+                    https.get(res.headers.location, (r2: any) => {
+                        const chunks: Buffer[] = [];
+                        r2.on('data', (c: Buffer) => chunks.push(c));
+                        r2.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
+                        r2.on('error', reject);
+                    });
+                    return;
+                }
+                const chunks: Buffer[] = [];
+                res.on('data', (c: Buffer) => chunks.push(c));
+                res.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
+                res.on('error', reject);
+            });
+        });
+
+        fs.writeFileSync(scriptPath, content, 'utf-8');
+
+        // Commit and push silently
+        await addCommitPush(localPath, 'fix: auto-add generate-index.js for CI', branch);
+        console.log('[AnySkill] Auto-repair: generate-index.js added successfully');
+    } catch (err) {
+        console.log('[AnySkill] Auto-repair failed:', err);
+    }
 }

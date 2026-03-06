@@ -1,8 +1,8 @@
 {
   "name": "anyskill",
   "displayName": "AnySkill",
-  "description": "🧠 你的私人 AI 技能空间 — 在 VS Code 中管理、加载、分享 AI 技能",
-  "version": "0.3.1",
+  "description": "Your personal, free skill management terminal — Store, sync and load AI agent skills across any IDE | 个人免费的 AI 技能管理终端",
+  "version": "0.3.7",
   "icon": "resources/anyskill-icon.png",
   "publisher": "anyskill",
   "license": "MIT",
@@ -10,14 +10,21 @@
     "vscode": "^1.85.0"
   },
   "categories": [
+    "Machine Learning",
     "Other"
   ],
   "keywords": [
-    "ai",
+    "skill",
     "skills",
+    "ai",
+    "ai-skill",
     "anyskill",
     "agent",
-    "prompt"
+    "ai-agent",
+    "agent-library",
+    "skill-library",
+    "skill-management",
+    "developer-tools"
   ],
   "repository": {
     "type": "git",
@@ -59,82 +66,82 @@
     "commands": [
       {
         "command": "anyskill.init",
-        "title": "AnySkill: 初始化配置",
+        "title": "AnySkill: Initialize | 初始化配置",
         "icon": "$(gear)"
       },
       {
         "command": "anyskill.refreshSkills",
-        "title": "AnySkill: 刷新技能列表",
+        "title": "AnySkill: Refresh Skills | 刷新技能",
         "icon": "$(refresh)"
       },
       {
         "command": "anyskill.loadSkill",
-        "title": "AnySkill: 加载技能到编辑器",
+        "title": "AnySkill: Load Skill | 加载技能",
         "icon": "$(eye)"
       },
       {
         "command": "anyskill.downloadSkill",
-        "title": "AnySkill: 下载技能到本地",
+        "title": "AnySkill: Download Skill | 下载技能",
         "icon": "$(cloud-download)"
       },
       {
         "command": "anyskill.syncAll",
-        "title": "AnySkill: 同步全部技能",
+        "title": "AnySkill: Sync All | 同步全部",
         "icon": "$(sync)"
       },
       {
         "command": "anyskill.uploadSkill",
-        "title": "AnySkill: 上传技能",
+        "title": "AnySkill: Upload Skill | 上传技能",
         "icon": "$(cloud-upload)"
       },
       {
         "command": "anyskill.deleteSkill",
-        "title": "AnySkill: 删除技能",
+        "title": "AnySkill: Delete Skill | 删除技能",
         "icon": "$(trash)"
       },
       {
         "command": "anyskill.viewSkillDetail",
-        "title": "AnySkill: 查看技能详情",
+        "title": "AnySkill: View Skill Detail | 查看详情",
         "icon": "$(open-preview)"
       },
       {
         "command": "anyskill.installPack",
-        "title": "AnySkill: 安装组合包",
+        "title": "AnySkill: Install Pack | 安装组合包",
         "icon": "$(desktop-download)"
       },
       {
         "command": "anyskill.refreshPacks",
-        "title": "AnySkill: 刷新组合包",
+        "title": "AnySkill: Refresh Packs | 刷新组合包",
         "icon": "$(refresh)"
       },
       {
         "command": "anyskill.checkUpdate",
-        "title": "AnySkill: 检查更新",
+        "title": "AnySkill: Check Update | 检查更新",
         "icon": "$(arrow-up)"
       },
       {
         "command": "anyskill.importSkill",
-        "title": "AnySkill: 导入已有技能",
+        "title": "AnySkill: Import Skill | 导入技能",
         "icon": "$(file-add)"
       },
       {
         "command": "anyskill.welcome",
-        "title": "AnySkill: 欢迎页",
+        "title": "AnySkill: Welcome | 欢迎页",
         "icon": "$(home)"
       },
       {
         "command": "anyskill.createFolder",
-        "title": "AnySkill: 新建分类文件夹",
+        "title": "AnySkill: Create Folder | 新建文件夹",
         "icon": "$(new-folder)"
       },
       {
         "command": "anyskill.deleteFolder",
-        "title": "AnySkill: 删除分类文件夹",
+        "title": "AnySkill: Delete Folder | 删除文件夹",
         "icon": "$(trash)"
       },
       {
         "command": "anyskill.moveSkill",
-        "title": "AnySkill: 移动技能到文件夹",
+        "title": "AnySkill: Move Skill | 移动技能",
         "icon": "$(move)"
       }
     ],
