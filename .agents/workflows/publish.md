@@ -25,7 +25,7 @@ cd /Users/grank/AnySkill-Projcet/AnySkill-VSCode && npx -y ovsx publish anyskill
 
 5. 提交到 GitHub：
 ```bash
-cd /Users/grank/AnySkill-Projcet/AnySkill-VSCode && git add -A && git commit -m "release: v{新版本号}" && git push origin main
+cd /Users/grank/AnySkill-Projcet/AnySkill-VSCode && git add -A && git commit -m "release: v{新版本号}" && git push origin master
 ```
 
 6. 告知用户发布结果，包含版本号和 Open VSX 链接：
