@@ -14,28 +14,28 @@ export async function initCommand(): Promise<void> {
 
     if (existingConfig) {
         const action = await vscode.window.showInformationMessage(
-            `已检测到 AnySkill 配置，连接到仓库 \`${existingConfig.repo}\``,
-            '重新配置',
-            '确定'
+            `AnySkill config found, connected to \`${existingConfig.repo}\` | 已检测到配置，连接到 \`${existingConfig.repo}\``,
+            'Reconfigure | 重新配置',
+            'OK | 确定'
         );
-        if (action !== '重新配置') {
+        if (action !== 'Reconfigure | 重新配置') {
             return;
         }
     }
 
     // Step 1: Ask for token
     const token = await vscode.window.showInputBox({
-        title: 'AnySkill: 输入 GitHub Token',
-        prompt: '请输入你的 GitHub Personal Access Token (以 github_pat_ 或 ghp_ 开头)',
+        title: 'AnySkill: Enter GitHub Token | 输入 GitHub Token',
+        prompt: 'Enter your GitHub Personal Access Token (starts with github_pat_ or ghp_) | 请输入 Token',
         password: true,
         placeHolder: 'github_pat_xxxxxxxxxxxx',
         ignoreFocusOut: true,
         validateInput: (value) => {
             if (!value) {
-                return '请输入 Token';
+                return 'Please enter a token | 请输入 Token';
             }
             if (!value.startsWith('github_pat_') && !value.startsWith('ghp_')) {
-                return 'Token 格式不正确，应以 github_pat_ 或 ghp_ 开头';
+                return 'Invalid format, should start with github_pat_ or ghp_ | Token 格式不正确';
             }
             return null;
         },
@@ -49,24 +49,24 @@ export async function initCommand(): Promise<void> {
     const choice = await vscode.window.showQuickPick(
         [
             {
-                label: '自动发现我的技能仓库',
-                description: '推荐 - 自动查找你名下的 AnySkill 仓库',
+                label: 'Auto-discover my skill repo | 自动发现技能仓库',
+                description: 'Recommended | 推荐',
                 value: 'auto',
             },
             {
-                label: '手动输入仓库地址',
-                description: '如果你知道仓库地址',
+                label: 'Enter repo manually | 手动输入仓库地址',
+                description: 'If you know the repo | 如果你知道地址',
                 value: 'manual',
             },
             {
-                label: '➕ 创建新的技能仓库',
-                description: '我还没有仓库',
+                label: '+ Create new skill repo | 创建新仓库',
+                description: 'I don\'t have one yet | 我还没有仓库',
                 value: 'create',
             },
         ],
         {
-            title: 'AnySkill: 选择仓库',
-            placeHolder: '选择你的技能仓库来源',
+            title: 'AnySkill: Select Repo | 选择仓库',
+            placeHolder: 'Choose your skill repo source | 选择技能仓库来源',
         }
     );
 
@@ -86,41 +86,37 @@ export async function initCommand(): Promise<void> {
                 cancellable: false,
             },
             async (progress) => {
-                progress.report({ message: '正在获取用户信息...' });
+                progress.report({ message: 'Fetching user info... | 正在获取用户信息...' });
 
                 const client = new GitHubClient('', 'main', token);
 
                 try {
                     const user = await client.getUserInfo();
-                    progress.report({ message: `你好 ${user.login}！正在搜索技能仓库...` });
+                    progress.report({ message: `Hello ${user.login}! Searching... | 你好 ${user.login}！正在搜索...` });
 
                     const searchResult = await client.searchRepos(user.login);
 
                     if (searchResult.total_count > 0) {
                         // Verify each candidate
                         for (const candidate of searchResult.items) {
-                            progress.report({ message: `正在验证 ${candidate.full_name}...` });
+                            progress.report({ message: `Verifying ${candidate.full_name}... | 正在验证...` });
                             const index = await client.verifyRepo(candidate.full_name, candidate.default_branch);
                             if (index !== null) {
                                 repo = candidate.full_name;
                                 branch = candidate.default_branch;
-                                vscode.window.showInformationMessage(
-                                    `找到技能仓库: ${repo}`
-                                );
+                                vscode.window.showInformationMessage(`Found skill repo: ${repo} | 找到技能仓库: ${repo}`);
                                 break;
                             }
                         }
                     }
 
                     if (!repo) {
-                        vscode.window.showWarningMessage(
-                            '未找到技能仓库，请手动输入或创建新仓库'
-                        );
+                        vscode.window.showWarningMessage('No repo found. Enter manually or create one | 未找到仓库，请手动输入或创建');
                         // Fall through to manual input
                         repo = await promptForRepo();
                     }
                 } catch (err: any) {
-                    vscode.window.showErrorMessage(`获取失败: ${err.message}`);
+                    vscode.window.showErrorMessage(`Failed | 获取失败: ${err.message}`);
                     return;
                 }
             }
@@ -132,9 +128,7 @@ export async function initCommand(): Promise<void> {
         vscode.env.openExternal(
             vscode.Uri.parse('https://github.com/lanyijianke/AnySkill/generate')
         );
-        vscode.window.showInformationMessage(
-            '请在浏览器中创建仓库后，回到这里输入仓库地址'
-        );
+        vscode.window.showInformationMessage('Please create the repo in your browser, then come back to enter the repo address | 请在浏览器中创建仓库后回来输入地址');
         repo = await promptForRepo();
     }
 
@@ -145,8 +139,8 @@ export async function initCommand(): Promise<void> {
     // Step 3: Clone and save config
     const defaultPath = path.join(os.homedir(), '.anyskill', 'repo');
     const localPath = await vscode.window.showInputBox({
-        title: 'AnySkill: 本地路径',
-        prompt: '选择仓库克隆到本地的路径',
+        title: 'AnySkill: Local Path | 本地路径',
+        prompt: 'Choose where to clone the repo | 选择仓库克隆路径',
         value: defaultPath,
         ignoreFocusOut: true,
     });
@@ -164,14 +158,14 @@ export async function initCommand(): Promise<void> {
         },
         async (progress) => {
             try {
-                progress.report({ message: '正在克隆仓库...' });
+                progress.report({ message: 'Cloning repo... | 正在克隆仓库...' });
 
                 const fs = await import('fs');
                 if (!fs.existsSync(localPath!)) {
                     await cloneRepo(repo!, localPath!, token);
                 }
 
-                progress.report({ message: '正在保存配置...' });
+                progress.report({ message: 'Saving config... | 正在保存配置...' });
 
                 const config: AnySkillConfig = {
                     repo: repo!,
@@ -189,7 +183,7 @@ export async function initCommand(): Promise<void> {
                 // Set configured context
                 vscode.commands.executeCommand('setContext', 'anyskill.configured', true);
             } catch (err: any) {
-                vscode.window.showErrorMessage(`配置失败: ${err.message}`);
+                vscode.window.showErrorMessage(`Config failed | 配置失败: ${err.message}`);
                 return;
             }
         }
@@ -198,9 +192,7 @@ export async function initCommand(): Promise<void> {
     // Step 4: Download engine to current workspace
     await downloadEngine(token);
 
-    vscode.window.showInformationMessage(
-        `AnySkill 配置完成！\n仓库: ${repo}\n本地: ${localPath}`
-    );
+    vscode.window.showInformationMessage(`AnySkill configured! Repo: ${repo} | 配置完成！仓库: ${repo}`);
 }
 
 /**
@@ -236,13 +228,13 @@ async function downloadEngine(token: string): Promise<void> {
     // Ask user
     const installEngine = await vscode.window.showInformationMessage(
         skillDir
-            ? `检测到 ${detectedIDE}，是否安装 AnySkill 引擎到当前项目？`
-            : '是否安装 AnySkill 引擎到当前项目？',
-        '安装引擎',
-        '跳过'
+            ? `Detected ${detectedIDE}. Install AnySkill engine? | 检测到 ${detectedIDE}，是否安装引擎？`
+            : 'Install AnySkill engine to current project? | 是否安装引擎？',
+        'Install | 安装引擎',
+        'Skip | 跳过'
     );
 
-    if (installEngine !== '安装引擎') {
+    if (installEngine !== 'Install | 安装引擎') {
         return;
     }
 
@@ -255,7 +247,7 @@ async function downloadEngine(token: string): Promise<void> {
                 { label: 'Cursor (.cursor/rules/)', value: path.join(root, '.cursor', 'rules', 'anyskill') },
                 { label: 'OpenClaw (.openclaw/skills/)', value: path.join(root, '.openclaw', 'skills', 'anyskill') },
             ],
-            { title: '选择引擎安装位置', placeHolder: '选择你使用的 AI IDE' }
+            { title: 'Select install location | 选择安装位置', placeHolder: 'Choose your AI IDE | 选择你使用的 AI IDE' }
         );
         if (!picked) { return; }
         skillDir = picked.value;
@@ -264,7 +256,7 @@ async function downloadEngine(token: string): Promise<void> {
     await vscode.window.withProgress(
         {
             location: vscode.ProgressLocation.Notification,
-            title: '正在下载 AnySkill 引擎...',
+            title: 'Downloading AnySkill engine... | 正在下载引擎...',
         },
         async () => {
             try {
@@ -316,11 +308,9 @@ async function downloadEngine(token: string): Promise<void> {
                     );
                 }
 
-                vscode.window.showInformationMessage(
-                    `引擎已安装到 ${skillDir}`
-                );
+                vscode.window.showInformationMessage(`Engine installed to ${skillDir} | 引擎已安装到 ${skillDir}`);
             } catch (err: any) {
-                vscode.window.showErrorMessage(`引擎下载失败: ${err.message}`);
+                vscode.window.showErrorMessage(`Engine download failed | 引擎下载失败: ${err.message}`);
             }
         }
     );
@@ -328,16 +318,16 @@ async function downloadEngine(token: string): Promise<void> {
 
 async function promptForRepo(): Promise<string | undefined> {
     return vscode.window.showInputBox({
-        title: 'AnySkill: 输入仓库地址',
-        prompt: '格式: 用户名/仓库名 (例如: lanyijianke/my-skills)',
+        title: 'AnySkill: Enter Repo | 输入仓库地址',
+        prompt: 'Format: username/repo-name | 格式: 用户名/仓库名 (e.g. lanyijianke/my-skills)',
         placeHolder: 'username/my-skills',
         ignoreFocusOut: true,
         validateInput: (value) => {
             if (!value) {
-                return '请输入仓库地址';
+                return 'Please enter a repo address | 请输入仓库地址';
             }
             if (!/^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/.test(value)) {
-                return '格式: 用户名/仓库名';
+                return 'Format: username/repo-name | 格式: 用户名/仓库名';
             }
             return null;
         },

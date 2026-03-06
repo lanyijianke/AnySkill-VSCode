@@ -13,7 +13,7 @@ export async function installPackCommand(arg?: PackCategoryItem | PackSkillItem)
     try {
         const config = discoverConfig();
         if (!config || !config.localPath) {
-            vscode.window.showErrorMessage('请先运行 "AnySkill: 初始化配置"');
+            vscode.window.showErrorMessage('Please run "AnySkill: Initialize" first | 请先初始化');
             return;
         }
 
@@ -34,18 +34,18 @@ export async function installPackCommand(arg?: PackCategoryItem | PackSkillItem)
                 .filter((p) => p.skills.length > 0)
                 .map((p) => ({
                     label: getCategoryLabel(p.category),
-                    description: `${p.skills.length} 个技能`,
+                    description: `${p.skills.length} skills | ${p.skills.length} 个技能`,
                     pack: p,
                 }));
 
             if (items.length === 0) {
-                vscode.window.showInformationMessage('暂无可用组合包');
+                vscode.window.showInformationMessage('No packs available | 暂无可用组合包');
                 return;
             }
 
             const picked = await vscode.window.showQuickPick(items, {
-                title: 'AnySkill: 选择组合包',
-                placeHolder: '选择要安装的组合包...',
+                title: 'AnySkill: Select Pack | 选择组合包',
+                placeHolder: 'Choose a pack to install... | 选择要安装的组合包...',
             });
 
             if (!picked) { return; }
@@ -57,24 +57,24 @@ export async function installPackCommand(arg?: PackCategoryItem | PackSkillItem)
             await installPackSkills(client, config, [singleSkill]);
         } else if (pack) {
             if (pack.skills.length === 0) {
-                vscode.window.showInformationMessage(`组合包 ${pack.category} 暂无技能`);
+                vscode.window.showInformationMessage(`Pack ${pack.category} has no skills | 暂无技能`);
                 return;
             }
 
             const confirm = await vscode.window.showInformationMessage(
-                `即将安装组合包 "${getCategoryLabel(pack.category)}"，包含 ${pack.skills.length} 个技能`,
-                '安装',
-                '取消'
+                `Install pack "${getCategoryLabel(pack.category)}" with ${pack.skills.length} skills? | 即将安装 ${pack.skills.length} 个技能`,
+                'Install | 安装',
+                'Cancel | 取消'
             );
 
-            if (confirm !== '安装') { return; }
+            if (confirm !== 'Install | 安装') { return; }
 
             await installPackSkills(client, config, pack.skills, pack.category);
         }
 
         vscode.commands.executeCommand('anyskill.refreshSkills');
     } catch (err: any) {
-        vscode.window.showErrorMessage(`安装失败: ${err.message}`);
+        vscode.window.showErrorMessage(`Install failed | 安装失败: ${err.message}`);
     }
 }
 
@@ -90,7 +90,7 @@ async function installPackSkills(
     await vscode.window.withProgress(
         {
             location: vscode.ProgressLocation.Notification,
-            title: `正在安装${category ? ` ${getCategoryLabel(category)}` : ''}...`,
+            title: `Installing${category ? ` ${getCategoryLabel(category)}` : ''}... | 正在安装...`,
             cancellable: true,
         },
         async (progress, cancelToken) => {
@@ -138,21 +138,21 @@ async function installPackSkills(
             // Git push if anything was installed
             if (success > 0) {
                 try {
-                    progress.report({ message: '正在推送到仓库...' });
+                    progress.report({ message: 'Pushing to repo... | 正在推送...' });
                     await addCommitPush(
                         config.localPath,
                         `feat: install pack ${category || 'skills'}`,
                         config.branch
                     );
                 } catch (err: any) {
-                    vscode.window.showWarningMessage(`推送失败: ${err.message}`);
+                    vscode.window.showWarningMessage(`Push failed | 推送失败: ${err.message}`);
                 }
             }
 
             // Report
-            let message = `安装完成！成功 ${success} 个`;
+            let message = `Install complete! ${success} succeeded | 安装完成！成功 ${success} 个`;
             if (failed > 0) {
-                message += `，失败 ${failed} 个 (${failedNames.join(', ')})`;
+                message += `, ${failed} failed (${failedNames.join(', ')}) | ，失败 ${failed} 个`;
             }
             vscode.window.showInformationMessage(message);
         }
@@ -161,11 +161,12 @@ async function installPackSkills(
 
 function getCategoryLabel(category: string): string {
     const map: Record<string, string> = {
-        'core-enhancement': '核心增强',
-        'tech-development': '技术开发',
-        'content-creation': '内容创作',
-        'data-crawling': '数据采集',
-        'communication': '通信集成',
+        'core-enhancement': 'Core Enhancement | 核心增强',
+        'tech-development': 'Tech Development | 技术开发',
+        'content-creation': 'Content Creation | 内容创作',
+        'data-crawling': 'Data Collection | 数据采集',
+        'communication': 'Communication | 通信集成',
+        'office-operations': 'Office Operations | 办公运营',
     };
     return map[category] || category;
 }

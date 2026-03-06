@@ -48,7 +48,7 @@ export function createSkillDetailPanel(
           break;
         case 'copyContent':
           await vscode.env.clipboard.writeText(message.text);
-          vscode.window.showInformationMessage('已复制到剪贴板');
+          vscode.window.showInformationMessage('Copied to clipboard | 已复制到剪贴板');
           break;
       }
     },
@@ -67,7 +67,7 @@ async function loadSkillContent(
   try {
     const config = discoverConfig();
     if (!config) {
-      panel.webview.html = getErrorHtml('未找到 AnySkill 配置，请先初始化', codiconCssUri);
+      panel.webview.html = getErrorHtml('AnySkill config not found. Please initialize first | 未找到配置，请先初始化', codiconCssUri);
       return;
     }
 
@@ -79,7 +79,7 @@ async function loadSkillContent(
 
     panel.webview.html = getDetailHtml(skill, content, codiconCssUri);
   } catch (err: any) {
-    panel.webview.html = getErrorHtml(`加载失败: ${err.message}`, codiconCssUri);
+    panel.webview.html = getErrorHtml(`Load failed | 加载失败: ${err.message}`, codiconCssUri);
   }
 }
 
@@ -96,7 +96,7 @@ function getLoadingHtml(name: string, codiconCssUri: vscode.Uri): string {
   <div class="container">
     <div class="loading">
       <div class="spinner"></div>
-      <p>正在加载 <strong>${escapeHtml(name)}</strong> ...</p>
+      <p>Loading <strong>${escapeHtml(name)}</strong> ...</p>
     </div>
   </div>
 </body>
@@ -157,11 +157,11 @@ function getDetailHtml(skill: SkillEntry, content: string, codiconCssUri: vscode
         <div class="skill-icon codicon codicon-symbol-method"></div>
         <div class="header-text">
           <h1>${escapeHtml(skill.name)}</h1>
-          <p class="description">${escapeHtml(skill.description || '暂无描述')}</p>
+          <p class="description">${escapeHtml(skill.description || 'No description | 暂无描述')}</p>
         </div>
       </div>
       <div class="meta-badges">
-        <span class="badge">${skill.files.length} 个文件</span>
+        <span class="badge">${skill.files.length} files | 个文件</span>
         ${frontmatter.version ? `<span class="badge badge-version">v${escapeHtml(frontmatter.version)}</span>` : ''}
       </div>
     </div>
@@ -169,22 +169,22 @@ function getDetailHtml(skill: SkillEntry, content: string, codiconCssUri: vscode
     <!-- Action Buttons -->
     <div class="actions">
       <button class="btn btn-primary" onclick="sendMessage('download')">
-        <span class="codicon codicon-cloud-download"></span> 下载到本地
+        <span class="codicon codicon-cloud-download"></span> Download | 下载到本地
       </button>
       <button class="btn btn-secondary" onclick="sendMessage('load')">
-        <span class="codicon codicon-eye"></span> 加载到编辑器
+        <span class="codicon codicon-eye"></span> Load to Editor | 加载到编辑器
       </button>
       <button class="btn btn-ghost" onclick="copyContent()">
-        <span class="codicon codicon-copy"></span> 复制内容
+        <span class="codicon codicon-copy"></span> Copy | 复制内容
       </button>
       <button class="btn btn-danger" onclick="confirmDelete()">
-        <span class="codicon codicon-trash"></span> 删除
+        <span class="codicon codicon-trash"></span> Delete | 删除
       </button>
     </div>
 
     <!-- Files List -->
     <div class="section">
-      <h2>文件列表</h2>
+      <h2>Files | 文件列表</h2>
       <div class="file-list">
         ${skill.files.map((f) => `
           <div class="file-item">
@@ -197,7 +197,7 @@ function getDetailHtml(skill: SkillEntry, content: string, codiconCssUri: vscode
 
     <!-- Content -->
     <div class="section">
-      <h2>技能内容</h2>
+      <h2>Content | 技能内容</h2>
       <div class="content-card">
         ${htmlContent}
       </div>
@@ -217,7 +217,7 @@ function getDetailHtml(skill: SkillEntry, content: string, codiconCssUri: vscode
     }
 
     function confirmDelete() {
-      if (confirm('确定要删除这个技能吗？此操作不可撤销。')) {
+      if (confirm('Delete this skill? This cannot be undone. | 确定要删除吗？不可撤销。')) {
         sendMessage('delete');
       }
     }

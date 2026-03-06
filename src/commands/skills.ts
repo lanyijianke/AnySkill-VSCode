@@ -12,7 +12,7 @@ import { SkillTreeItem, CategoryItem, SkillsTreeProvider } from '../views/skills
 function getClient(): { client: GitHubClient; config: ReturnType<typeof discoverConfig> } {
     const config = discoverConfig();
     if (!config) {
-        throw new Error('请先运行 "AnySkill: 初始化配置"');
+        throw new Error('Please run "AnySkill: Initialize" first | 请先运行初始化配置');
     }
     const token = getToken(config);
     return { client: new GitHubClient(config.repo, config.branch, token), config };
@@ -34,7 +34,7 @@ async function resolveSkill(arg?: SkillTreeItem | SkillEntry): Promise<SkillEntr
     const skills = await client.fetchIndex();
 
     if (skills.length === 0) {
-        vscode.window.showInformationMessage('暂无技能');
+        vscode.window.showInformationMessage('No skills yet | 暂无技能');
         return undefined;
     }
 
@@ -45,8 +45,8 @@ async function resolveSkill(arg?: SkillTreeItem | SkillEntry): Promise<SkillEntr
     }));
 
     const picked = await vscode.window.showQuickPick(items, {
-        title: 'AnySkill: 选择技能',
-        placeHolder: '搜索技能...',
+        title: 'AnySkill: Select Skill | 选择技能',
+        placeHolder: 'Search skills... | 搜索技能...',
     });
 
     return picked?.skill;
@@ -65,7 +65,7 @@ export async function loadSkillCommand(arg?: SkillTreeItem | SkillEntry): Promis
         await vscode.window.withProgress(
             {
                 location: vscode.ProgressLocation.Notification,
-                title: `正在加载 ${skill.name}...`,
+                title: `Loading ${skill.name}... | 正在加载...`,
             },
             async () => {
                 const content = await client.fetchFileContent(skill.file);
@@ -74,11 +74,11 @@ export async function loadSkillCommand(arg?: SkillTreeItem | SkillEntry): Promis
                     language: 'markdown',
                 });
                 await vscode.window.showTextDocument(doc, { preview: true });
-                vscode.window.showInformationMessage(`已加载 ${skill.name} 到编辑器`);
+                vscode.window.showInformationMessage(`Loaded ${skill.name} | 已加载到编辑器`);
             }
         );
     } catch (err: any) {
-        vscode.window.showErrorMessage(`加载失败: ${err.message}`);
+        vscode.window.showErrorMessage(`Load failed | 加载失败: ${err.message}`);
     }
 }
 
@@ -99,7 +99,7 @@ export async function downloadSkillCommand(arg?: SkillTreeItem | SkillEntry): Pr
         await vscode.window.withProgress(
             {
                 location: vscode.ProgressLocation.Notification,
-                title: `正在下载 ${skill.name}...`,
+                title: `Downloading ${skill.name}... | 正在下载...`,
                 cancellable: false,
             },
             async (progress) => {
@@ -122,12 +122,12 @@ export async function downloadSkillCommand(arg?: SkillTreeItem | SkillEntry): Pr
                 }
 
                 vscode.window.showInformationMessage(
-                    `技能 ${skill.name} 已下载到 ${skillDir}，共 ${downloaded} 个文件`
+                    `${skill.name} downloaded to ${skillDir} (${downloaded} files) | 已下载 ${downloaded} 个文件`
                 );
             }
         );
     } catch (err: any) {
-        vscode.window.showErrorMessage(`下载失败: ${err.message}`);
+        vscode.window.showErrorMessage(`Download failed | 下载失败: ${err.message}`);
     }
 }
 
@@ -140,24 +140,24 @@ export async function syncAllCommand(): Promise<void> {
 
         const skills = await client.fetchIndex();
         if (skills.length === 0) {
-            vscode.window.showInformationMessage('云端暂无技能');
+            vscode.window.showInformationMessage('No skills in cloud | 云端暂无技能');
             return;
         }
 
         const confirm = await vscode.window.showInformationMessage(
-            `即将下载 ${skills.length} 个技能到本地，继续？`,
-            '下载',
-            '取消'
+            `Download ${skills.length} skills to local? | 即将下载 ${skills.length} 个技能，继续？`,
+            'Download | 下载',
+            'Cancel | 取消'
         );
 
-        if (confirm !== '下载') {
+        if (confirm !== 'Download | 下载') {
             return;
         }
 
         await vscode.window.withProgress(
             {
                 location: vscode.ProgressLocation.Notification,
-                title: '正在同步所有技能...',
+                title: 'Syncing all skills... | 正在同步...',
                 cancellable: true,
             },
             async (progress, cancelToken) => {
@@ -193,12 +193,12 @@ export async function syncAllCommand(): Promise<void> {
                 }
 
                 vscode.window.showInformationMessage(
-                    `同步完成！成功 ${completed} 个${failed > 0 ? `，失败 ${failed} 个` : ''}`
+                    `Sync complete! ${completed} succeeded${failed > 0 ? `, ${failed} failed` : ''} | 同步完成！成功 ${completed} 个${failed > 0 ? `，失败 ${failed} 个` : ''}`
                 );
             }
         );
     } catch (err: any) {
-        vscode.window.showErrorMessage(`同步失败: ${err.message}`);
+        vscode.window.showErrorMessage(`Sync failed | 同步失败: ${err.message}`);
     }
 }
 
@@ -209,26 +209,26 @@ export async function uploadSkillCommand(): Promise<void> {
     try {
         const config = discoverConfig();
         if (!config || !config.localPath) {
-            vscode.window.showErrorMessage('请先运行 "AnySkill: 初始化配置"');
+            vscode.window.showErrorMessage('Please run "AnySkill: Initialize" first | 请先初始化');
             return;
         }
 
         // Ask for skill name
         const skillName = await vscode.window.showInputBox({
-            title: 'AnySkill: 新建技能',
-            prompt: '输入技能名称（中英文都可以）',
-            placeHolder: '例如: 前端设计 或 web-scraper',
+            title: 'AnySkill: New Skill | 新建技能',
+            prompt: 'Enter skill name | 输入技能名称',
+            placeHolder: 'e.g. frontend-design or web-scraper',
             ignoreFocusOut: true,
-            validateInput: (v) => v ? null : '请输入技能名称',
+            validateInput: (v) => v ? null : 'Please enter a name | 请输入名称',
         });
 
         if (!skillName) { return; }
 
         // Ask for description
         const description = await vscode.window.showInputBox({
-            title: 'AnySkill: 技能描述',
-            prompt: '简要描述用途（一句话）',
-            placeHolder: '例如: 创建现代化前端界面的设计规范',
+            title: 'AnySkill: Skill Description | 技能描述',
+            prompt: 'Brief description | 简要描述用途',
+            placeHolder: 'e.g. Modern frontend design guidelines',
             ignoreFocusOut: true,
         });
 
@@ -239,7 +239,7 @@ export async function uploadSkillCommand(): Promise<void> {
 
         if (categories.length > 0) {
             const categoryItems = [
-                { label: '$(symbol-folder) 不分类', description: '放在 skills/ 顶层', value: '' },
+                { label: '$(symbol-folder) No category | 不分类', description: 'Root skills/ folder', value: '' },
                 ...categories.map(c => ({
                     label: `$(folder) ${c}`,
                     description: `放入 skills/${c}/`,
@@ -248,8 +248,8 @@ export async function uploadSkillCommand(): Promise<void> {
             ];
 
             const picked = await vscode.window.showQuickPick(categoryItems, {
-                title: 'AnySkill: 选择分类',
-                placeHolder: '要放入哪个分类文件夹？',
+                title: 'AnySkill: Select Category | 选择分类',
+                placeHolder: 'Which folder? | 放入哪个分类？',
             });
 
             if (picked === undefined) { return; } // user cancelled
@@ -264,7 +264,7 @@ description: ${description || ''}
 
 # ${skillName}
 
-<!-- 在下方编写你的技能内容，保存后点击通知栏的「推送到云端」上传 -->
+<!-- Write your skill content below, save and click "Push to Cloud" to upload | 在下方编写技能内容 -->
 
 `;
 
@@ -288,14 +288,14 @@ description: ${description || ''}
         vscode.commands.executeCommand('anyskill.refreshSkills');
 
         // Prompt to push
-        const locationHint = targetCategory ? ` (分类: ${targetCategory})` : '';
+        const locationHint = targetCategory ? ` (${targetCategory})` : '';
         const action = await vscode.window.showInformationMessage(
-            `技能 "${skillName}"${locationHint} 已创建，编辑完成后点击推送`,
-            '推送到云端',
-            '稍后推送'
+            `Skill "${skillName}"${locationHint} created. Push when ready | 技能已创建`,
+            'Push to Cloud | 推送到云端',
+            'Later | 稍后推送'
         );
 
-        if (action === '推送到云端') {
+        if (action === 'Push to Cloud | 推送到云端') {
             // Ensure infra files exist
             await ensureInfraFiles(config);
 
@@ -303,7 +303,7 @@ description: ${description || ''}
             await vscode.window.withProgress(
                 {
                     location: vscode.ProgressLocation.Notification,
-                    title: `正在上传技能 ${skillName}...`,
+                    title: `Uploading ${skillName}... | 正在上传...`,
                 },
                 async () => {
                     await addCommitPush(
@@ -314,15 +314,13 @@ description: ${description || ''}
                 }
             );
 
-            vscode.window.showInformationMessage(
-                `技能 "${skillName}" 已推送到云端！`
-            );
+            vscode.window.showInformationMessage(`Skill "${skillName}" pushed! | 已推送到云端`);
 
             // Refresh
             vscode.commands.executeCommand('anyskill.refreshSkills');
         }
     } catch (err: any) {
-        vscode.window.showErrorMessage(`上传失败: ${err.message}`);
+        vscode.window.showErrorMessage(`Upload failed | 上传失败: ${err.message}`);
     }
 }
 
@@ -336,24 +334,24 @@ export async function deleteSkillCommand(arg?: SkillTreeItem | SkillEntry): Prom
 
         const config = discoverConfig();
         if (!config || !config.localPath) {
-            vscode.window.showErrorMessage('请先初始化 AnySkill');
+            vscode.window.showErrorMessage('Please initialize AnySkill first | 请先初始化');
             return;
         }
 
         const confirm = await vscode.window.showWarningMessage(
-            `即将删除技能 "${skill.name}"，此操作不可撤销！`,
+            `Delete skill "${skill.name}"? This cannot be undone! | 即将删除，不可撤销！`,
             { modal: true },
-            '删除'
+            'Delete | 删除'
         );
 
-        if (confirm !== '删除') {
+        if (confirm !== 'Delete | 删除') {
             return;
         }
 
         await vscode.window.withProgress(
             {
                 location: vscode.ProgressLocation.Notification,
-                title: `正在删除 ${skill.name}...`,
+                title: `Deleting ${skill.name}... | 正在删除...`,
             },
             async () => {
                 // Use path field if available, otherwise fall back to file-based extraction
@@ -397,13 +395,11 @@ export async function deleteSkillCommand(arg?: SkillTreeItem | SkillEntry): Prom
             }
         );
 
-        vscode.window.showInformationMessage(
-            `技能 "${skill.name}" 已删除`
-        );
+        vscode.window.showInformationMessage(`Skill "${skill.name}" deleted | 已删除`);
 
         vscode.commands.executeCommand('anyskill.refreshSkills');
     } catch (err: any) {
-        vscode.window.showErrorMessage(`删除失败: ${err.message}`);
+        vscode.window.showErrorMessage(`Delete failed | 删除失败: ${err.message}`);
     }
 }
 
@@ -414,7 +410,7 @@ async function determineSkillDir(skillName: string, askUser: boolean = true): Pr
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders || workspaceFolders.length === 0) {
         if (askUser) {
-            vscode.window.showWarningMessage('请先打开一个工作区');
+            vscode.window.showWarningMessage('Please open a workspace first | 请先打开工作区');
         }
         return undefined;
     }
@@ -443,9 +439,9 @@ async function determineSkillDir(skillName: string, askUser: boolean = true): Pr
             { label: 'Antigravity (.agent/skills/)', value: path.join(root, '.agent', 'skills', skillName) },
             { label: 'Claude Code (.claude/skills/)', value: path.join(root, '.claude', 'skills', skillName) },
             { label: 'Cursor (.cursor/rules/)', value: path.join(root, '.cursor', 'rules', skillName) },
-            { label: '自定义路径...', value: 'custom' },
+            { label: 'Custom path... | 自定义路径...', value: 'custom' },
         ],
-        { title: '选择技能存放位置', placeHolder: '检测到 VS Code 环境' }
+        { title: 'Select skill location | 选择存放位置', placeHolder: 'VS Code environment detected' }
     );
 
     if (!picked) { return undefined; }
@@ -455,7 +451,7 @@ async function determineSkillDir(skillName: string, askUser: boolean = true): Pr
             canSelectFiles: false,
             canSelectFolders: true,
             canSelectMany: false,
-            title: '选择技能存放目录',
+            title: 'Select skill directory | 选择技能存放目录',
         });
         return uris ? path.join(uris[0].fsPath, skillName) : undefined;
     }
@@ -519,7 +515,7 @@ export async function importSkillCommand(): Promise<void> {
     try {
         const config = discoverConfig();
         if (!config || !config.localPath) {
-            vscode.window.showErrorMessage('请先运行 "AnySkill: 初始化配置"');
+            vscode.window.showErrorMessage('Please run "AnySkill: Initialize" first | 请先初始化');
             return;
         }
 
@@ -527,17 +523,17 @@ export async function importSkillCommand(): Promise<void> {
         const choice = await vscode.window.showQuickPick(
             [
                 {
-                    label: '选择技能文件夹',
-                    description: '导入整个文件夹（包含 SKILL.md 和其他文件）',
+                    label: 'Select skill folder | 选择技能文件夹',
+                    description: 'Import entire folder with SKILL.md | 导入整个文件夹',
                     value: 'folder',
                 },
                 {
-                    label: '选择 SKILL.md 文件',
-                    description: '导入单个技能文件',
+                    label: 'Select SKILL.md file | 选择 SKILL.md',
+                    description: 'Import single skill file | 导入单个文件',
                     value: 'file',
                 },
             ],
-            { title: 'AnySkill: 导入已有技能', placeHolder: '选择导入方式' }
+            { title: 'AnySkill: Import Skill | 导入技能', placeHolder: 'Choose import method | 选择导入方式' }
         );
 
         if (!choice) { return; }
@@ -548,7 +544,7 @@ export async function importSkillCommand(): Promise<void> {
                 canSelectFiles: false,
                 canSelectFolders: true,
                 canSelectMany: false,
-                title: '选择技能文件夹（应包含 SKILL.md）',
+                title: 'Select skill folder (should contain SKILL.md) | 选择技能文件夹',
             });
 
             if (!uris || uris.length === 0) { return; }
@@ -560,11 +556,11 @@ export async function importSkillCommand(): Promise<void> {
             const skillMdPath = path.join(sourceDir, 'SKILL.md');
             if (!fs.existsSync(skillMdPath)) {
                 const createIt = await vscode.window.showWarningMessage(
-                    `文件夹 "${folderName}" 中没有找到 SKILL.md，是否自动创建？`,
-                    '创建',
-                    '取消'
+                    `SKILL.md not found in "${folderName}". Create one? | 未找到 SKILL.md，是否创建？`,
+                    'Create | 创建',
+                    'Cancel | 取消'
                 );
-                if (createIt !== '创建') { return; }
+                if (createIt !== 'Create | 创建') { return; }
 
                 const template = `---\nname: ${folderName}\ndescription: \n---\n\n# ${folderName}\n\n`;
                 fs.writeFileSync(skillMdPath, template, 'utf-8');
@@ -583,12 +579,12 @@ export async function importSkillCommand(): Promise<void> {
             }
 
             const action = await vscode.window.showInformationMessage(
-                `技能 "${folderName}" 已导入（${countFiles(targetDir)} 个文件），推送到云端？`,
-                '推送到云端',
-                '稍后推送'
+                `Skill "${folderName}" imported (${countFiles(targetDir)} files). Push to cloud? | 已导入`,
+                'Push to Cloud | 推送到云端',
+                'Later | 稍后推送'
             );
 
-            if (action === '推送到云端') {
+            if (action === 'Push to Cloud | 推送到云端') {
                 await pushSkill(config, folderName);
             }
         } else {
@@ -598,7 +594,7 @@ export async function importSkillCommand(): Promise<void> {
                 canSelectFolders: false,
                 canSelectMany: false,
                 filters: { 'Markdown': ['md'] },
-                title: '选择 SKILL.md 文件',
+                title: 'Select SKILL.md file | 选择 SKILL.md 文件',
             });
 
             if (!uris || uris.length === 0) { return; }
@@ -620,9 +616,9 @@ export async function importSkillCommand(): Promise<void> {
             }
 
             const finalName = await vscode.window.showInputBox({
-                title: '确认技能名称',
+                title: 'Confirm skill name | 确认技能名称',
                 value: skillName,
-                prompt: '技能将以此名称保存到仓库中',
+                prompt: 'Skill will be saved with this name | 技能将以此名称保存',
                 ignoreFocusOut: true,
             });
 
@@ -640,29 +636,29 @@ export async function importSkillCommand(): Promise<void> {
             await vscode.window.showTextDocument(doc);
 
             const action = await vscode.window.showInformationMessage(
-                `技能 "${finalName}" 已导入，推送到云端？`,
-                '推送到云端',
-                '稍后推送'
+                `Skill "${finalName}" imported. Push to cloud? | 已导入`,
+                'Push to Cloud | 推送到云端',
+                'Later | 稍后推送'
             );
 
-            if (action === '推送到云端') {
+            if (action === 'Push to Cloud | 推送到云端') {
                 await pushSkill(config, finalName);
             }
         }
     } catch (err: any) {
-        vscode.window.showErrorMessage(`导入失败: ${err.message}`);
+        vscode.window.showErrorMessage(`Import failed | 导入失败: ${err.message}`);
     }
 }
 
 async function pushSkill(config: any, skillName: string): Promise<void> {
     await ensureInfraFiles(config);
     await vscode.window.withProgress(
-        { location: vscode.ProgressLocation.Notification, title: `正在推送 ${skillName}...` },
+        { location: vscode.ProgressLocation.Notification, title: `Pushing ${skillName}... | 正在推送...` },
         async () => {
             await addCommitPush(config.localPath, `feat: add skill ${skillName}`, config.branch);
         }
     );
-    vscode.window.showInformationMessage(`技能 "${skillName}" 已推送到云端！`);
+    vscode.window.showInformationMessage(`Skill "${skillName}" pushed! | 已推送到云端`);
     vscode.commands.executeCommand('anyskill.refreshSkills');
 }
 
@@ -693,23 +689,23 @@ export async function createFolderCommand(): Promise<void> {
     try {
         const config = discoverConfig();
         if (!config || !config.localPath) {
-            vscode.window.showErrorMessage('请先运行 "AnySkill: 初始化配置"');
+            vscode.window.showErrorMessage('Please run "AnySkill: Initialize" first | 请先初始化');
             return;
         }
 
         const folderName = await vscode.window.showInputBox({
-            title: 'AnySkill: 新建分类文件夹',
-            prompt: '输入文件夹名称',
-            placeHolder: '例如: core 或 dev',
+            title: 'AnySkill: New Category Folder | 新建分类文件夹',
+            prompt: 'Enter folder name | 输入文件夹名称',
+            placeHolder: 'e.g. core or dev',
             ignoreFocusOut: true,
-            validateInput: (v) => v ? null : '请输入文件夹名称',
+            validateInput: (v) => v ? null : 'Please enter a name | 请输入名称',
         });
 
         if (!folderName) { return; }
 
         const folderPath = path.join(config.localPath, 'skills', folderName);
         if (fs.existsSync(folderPath)) {
-            vscode.window.showWarningMessage(`文件夹 "${folderName}" 已存在`);
+            vscode.window.showWarningMessage(`Folder "${folderName}" already exists | 已存在`);
             return;
         }
 
@@ -717,7 +713,7 @@ export async function createFolderCommand(): Promise<void> {
         fs.writeFileSync(path.join(folderPath, '.gitkeep'), '', 'utf-8');
 
         await vscode.window.withProgress(
-            { location: vscode.ProgressLocation.Notification, title: `正在创建文件夹 ${folderName}...` },
+            { location: vscode.ProgressLocation.Notification, title: `Creating folder ${folderName}... | 正在创建...` },
             async () => {
                 await addCommitPush(
                     config.localPath,
@@ -727,10 +723,10 @@ export async function createFolderCommand(): Promise<void> {
             }
         );
 
-        vscode.window.showInformationMessage(`分类文件夹 "${folderName}" 已创建`);
+        vscode.window.showInformationMessage(`Category folder "${folderName}" created | 已创建`);
         vscode.commands.executeCommand('anyskill.refreshSkills');
     } catch (err: any) {
-        vscode.window.showErrorMessage(`创建失败: ${err.message}`);
+        vscode.window.showErrorMessage(`Create failed | 创建失败: ${err.message}`);
     }
 }
 
@@ -741,7 +737,7 @@ export async function deleteFolderCommand(arg?: CategoryItem): Promise<void> {
     try {
         const config = discoverConfig();
         if (!config || !config.localPath) {
-            vscode.window.showErrorMessage('请先初始化 AnySkill');
+            vscode.window.showErrorMessage('Please initialize AnySkill first | 请先初始化');
             return;
         }
 
@@ -754,12 +750,12 @@ export async function deleteFolderCommand(arg?: CategoryItem): Promise<void> {
             const sp = new SkillsTreeProvider();
             const categories = sp.getCategories(config.localPath);
             if (categories.length === 0) {
-                vscode.window.showInformationMessage('暂无分类文件夹');
+                vscode.window.showInformationMessage('No category folders | 暂无分类文件夹');
                 return;
             }
             const picked = await vscode.window.showQuickPick(
                 categories.map(c => ({ label: c })),
-                { title: '选择要删除的分类文件夹' }
+                { title: 'Select folder to delete | 选择要删除的分类文件夹' }
             );
             folderName = picked?.label;
         }
@@ -768,7 +764,7 @@ export async function deleteFolderCommand(arg?: CategoryItem): Promise<void> {
 
         const folderPath = path.join(config.localPath, 'skills', folderName);
         if (!fs.existsSync(folderPath)) {
-            vscode.window.showWarningMessage(`文件夹 "${folderName}" 不存在`);
+            vscode.window.showWarningMessage(`Folder "${folderName}" not found | 不存在`);
             return;
         }
 
@@ -779,22 +775,20 @@ export async function deleteFolderCommand(arg?: CategoryItem): Promise<void> {
         });
 
         if (hasSkills) {
-            vscode.window.showWarningMessage(
-                `文件夹 "${folderName}" 下还有技能，请先移走或删除它们`
-            );
+            vscode.window.showWarningMessage(`Folder "${folderName}" still has skills. Move or delete them first | 请先移走或删除其中的技能`);
             return;
         }
 
         const confirm = await vscode.window.showWarningMessage(
-            `即将删除分类文件夹 "${folderName}"`,
+            `Delete category folder "${folderName}"? | 删除分类文件夹？`,
             { modal: true },
-            '删除'
+            'Delete | 删除'
         );
 
-        if (confirm !== '删除') { return; }
+        if (confirm !== 'Delete | 删除') { return; }
 
         await vscode.window.withProgress(
-            { location: vscode.ProgressLocation.Notification, title: `正在删除文件夹 ${folderName}...` },
+            { location: vscode.ProgressLocation.Notification, title: `Deleting folder ${folderName}... | 正在删除...` },
             async () => {
                 try {
                     await removeAndPush(
@@ -815,10 +809,10 @@ export async function deleteFolderCommand(arg?: CategoryItem): Promise<void> {
             }
         );
 
-        vscode.window.showInformationMessage(`分类文件夹 "${folderName}" 已删除`);
+        vscode.window.showInformationMessage(`Category folder "${folderName}" deleted | 已删除`);
         vscode.commands.executeCommand('anyskill.refreshSkills');
     } catch (err: any) {
-        vscode.window.showErrorMessage(`删除失败: ${err.message}`);
+        vscode.window.showErrorMessage(`Delete failed | 删除失败: ${err.message}`);
     }
 }
 
@@ -832,7 +826,7 @@ export async function moveSkillCommand(arg?: SkillTreeItem | SkillEntry): Promis
 
         const config = discoverConfig();
         if (!config || !config.localPath) {
-            vscode.window.showErrorMessage('请先初始化 AnySkill');
+            vscode.window.showErrorMessage('Please initialize AnySkill first | 请先初始化');
             return;
         }
 
@@ -840,18 +834,18 @@ export async function moveSkillCommand(arg?: SkillTreeItem | SkillEntry): Promis
         const categories = sp.getCategories(config.localPath);
 
         const targetItems = [
-            { label: '$(symbol-folder) 顶层（不分类）', description: 'skills/', value: '' },
+            { label: '$(symbol-folder) Root (no category) | 顶层（不分类）', description: 'skills/', value: '' },
             ...categories.map(c => ({
                 label: `$(folder) ${c}`,
                 description: `skills/${c}/`,
                 value: c,
             })),
-            { label: '$(add) 新建文件夹...', description: '', value: '__NEW__' },
+            { label: '$(add) New folder... | 新建文件夹...', description: '', value: '__NEW__' },
         ];
 
         const picked = await vscode.window.showQuickPick(targetItems, {
-            title: `移动技能 "${skill.name}" 到...`,
-            placeHolder: '选择目标分类',
+            title: `Move skill "${skill.name}" to... | 移动技能`,
+            placeHolder: 'Select target category | 选择目标分类',
         });
 
         if (!picked) { return; }
@@ -860,8 +854,8 @@ export async function moveSkillCommand(arg?: SkillTreeItem | SkillEntry): Promis
 
         if (targetFolder === '__NEW__') {
             const newName = await vscode.window.showInputBox({
-                title: '新建分类文件夹',
-                prompt: '输入文件夹名称',
+                title: 'New category folder | 新建分类',
+                prompt: 'Enter folder name | 输入名称',
             });
             if (!newName) { return; }
             targetFolder = newName;
@@ -873,7 +867,7 @@ export async function moveSkillCommand(arg?: SkillTreeItem | SkillEntry): Promis
         const newPath = targetFolder ? `${targetFolder}/${skillDirName}` : skillDirName;
 
         if (currentPath === newPath) {
-            vscode.window.showInformationMessage('技能已在该位置');
+            vscode.window.showInformationMessage('Skill is already here | 技能已在该位置');
             return;
         }
 
@@ -881,7 +875,7 @@ export async function moveSkillCommand(arg?: SkillTreeItem | SkillEntry): Promis
         const destFull = path.join(config.localPath, 'skills', newPath);
 
         if (!fs.existsSync(srcFull)) {
-            vscode.window.showErrorMessage(`源路径不存在: skills/${currentPath}`);
+            vscode.window.showErrorMessage(`Source not found: skills/${currentPath} | 源路径不存在`);
             return;
         }
 
@@ -895,7 +889,7 @@ export async function moveSkillCommand(arg?: SkillTreeItem | SkillEntry): Promis
         fs.renameSync(srcFull, destFull);
 
         await vscode.window.withProgress(
-            { location: vscode.ProgressLocation.Notification, title: `正在移动 ${skill.name}...` },
+            { location: vscode.ProgressLocation.Notification, title: `Moving ${skill.name}... | 正在移动...` },
             async () => {
                 await addCommitPush(
                     config.localPath,
@@ -905,10 +899,10 @@ export async function moveSkillCommand(arg?: SkillTreeItem | SkillEntry): Promis
             }
         );
 
-        const dest = targetFolder ? `${targetFolder}/` : '顶层';
-        vscode.window.showInformationMessage(`技能 "${skill.name}" 已移动到 ${dest}`);
+        const dest = targetFolder ? `${targetFolder}/` : 'root';
+        vscode.window.showInformationMessage(`Skill "${skill.name}" moved to ${dest} | 已移动`);
         vscode.commands.executeCommand('anyskill.refreshSkills');
     } catch (err: any) {
-        vscode.window.showErrorMessage(`移动失败: ${err.message}`);
+        vscode.window.showErrorMessage(`Move failed | 移动失败: ${err.message}`);
     }
 }

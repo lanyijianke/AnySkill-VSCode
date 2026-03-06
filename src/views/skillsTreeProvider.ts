@@ -23,7 +23,7 @@ export class SkillTreeItem extends vscode.TreeItem {
         // Double-click to view detail
         this.command = {
             command: 'anyskill.viewSkillDetail',
-            title: '查看技能详情',
+            title: 'View Skill Detail | 查看技能详情',
             arguments: [this],
         };
     }
@@ -36,7 +36,7 @@ export class CategoryItem extends vscode.TreeItem {
     ) {
         super(categoryName, vscode.TreeItemCollapsibleState.Collapsed);
         this.id = `category:${categoryName}`;
-        this.tooltip = `分类: ${categoryName} (${skills.length} 个技能)`;
+        this.tooltip = `Category: ${categoryName} (${skills.length} skills) | 分类: ${categoryName} (${skills.length} 个技能)`;
         this.description = `${skills.length} skills`;
         this.contextValue = 'category';
         this.iconPath = new vscode.ThemeIcon('folder');
@@ -104,10 +104,10 @@ export class SkillsTreeProvider implements vscode.TreeDataProvider<vscode.TreeIt
         // Root level: load skills
         const config = discoverConfig();
         if (!config) {
-            const item = new vscode.TreeItem('点击初始化 AnySkill');
+            const item = new vscode.TreeItem('Click to initialize AnySkill | 点击初始化 AnySkill');
             item.command = {
                 command: 'anyskill.init',
-                title: '初始化',
+                title: 'Initialize | 初始化',
             };
             item.iconPath = new vscode.ThemeIcon('gear');
             return [item];
@@ -150,11 +150,11 @@ export class SkillsTreeProvider implements vscode.TreeDataProvider<vscode.TreeIt
             this.loadError = null;
 
             if (this.skills.length === 0) {
-                const item = new vscode.TreeItem('暂无技能，点击上传');
+                const item = new vscode.TreeItem('No skills yet, click to upload | 暂无技能，点击上传');
                 item.iconPath = new vscode.ThemeIcon('add');
                 item.command = {
                     command: 'anyskill.uploadSkill',
-                    title: '上传技能',
+                    title: 'Upload Skill | 上传技能',
                 };
                 return [item];
             }
@@ -162,7 +162,7 @@ export class SkillsTreeProvider implements vscode.TreeDataProvider<vscode.TreeIt
             return this.buildTree(this.skills, config?.localPath);
         } catch (err: any) {
             this.loadError = err.message;
-            const item = new vscode.TreeItem(`加载失败: ${err.message}`);
+            const item = new vscode.TreeItem(`Load failed | 加载失败: ${err.message}`);
             item.iconPath = new vscode.ThemeIcon('error');
             return [item];
         }

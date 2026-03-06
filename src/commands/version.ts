@@ -9,7 +9,7 @@ export async function checkUpdateCommand(): Promise<void> {
     try {
         const config = discoverConfig();
         if (!config) {
-            vscode.window.showWarningMessage('请先运行 "AnySkill: 初始化配置"');
+            vscode.window.showWarningMessage('Please run "AnySkill: Initialize" first | 请先初始化');
             return;
         }
 
@@ -19,7 +19,7 @@ export async function checkUpdateCommand(): Promise<void> {
         await vscode.window.withProgress(
             {
                 location: vscode.ProgressLocation.Notification,
-                title: '正在检查 AnySkill 更新...',
+                title: 'Checking AnySkill updates... | 正在检查更新...',
             },
             async () => {
                 const versionInfo = await client.fetchVersionInfo();
@@ -33,7 +33,7 @@ export async function checkUpdateCommand(): Promise<void> {
                         (e) => compareVersions(e.version, currentVersion) > 0
                     );
 
-                    let changelogText = `AnySkill 引擎有新版本 v${remoteVersion}（当前 v${currentVersion}）\n\n`;
+                    let changelogText = `AnySkill engine v${remoteVersion} available (current v${currentVersion}) | 引擎有新版本\n\n`;
                     for (const entry of newEntries) {
                         changelogText += `v${entry.version} (${entry.date})\n`;
                         for (const change of entry.changes) {
@@ -43,12 +43,12 @@ export async function checkUpdateCommand(): Promise<void> {
                     }
 
                     const action = await vscode.window.showInformationMessage(
-                        `AnySkill v${remoteVersion} 可用（当前 v${currentVersion}）`,
-                        '查看更新日志',
-                        '稍后'
+                        `AnySkill v${remoteVersion} available (current v${currentVersion}) | 有新版本`,
+                        'View Changelog | 查看更新日志',
+                        'Later | 稍后'
                     );
 
-                    if (action === '查看更新日志') {
+                    if (action === 'View Changelog | 查看更新日志') {
                         // Show changelog in a new document
                         const doc = await vscode.workspace.openTextDocument({
                             content: changelogText,
@@ -57,13 +57,13 @@ export async function checkUpdateCommand(): Promise<void> {
                         await vscode.window.showTextDocument(doc, { preview: true });
                     }
                 } else {
-                    vscode.window.showInformationMessage('AnySkill 已是最新版本');
+                    vscode.window.showInformationMessage('AnySkill is up to date | 已是最新版本');
                 }
             }
         );
     } catch (err: any) {
         // Silently skip if version check fails
-        vscode.window.showWarningMessage(`版本检查失败: ${err.message}`);
+        vscode.window.showWarningMessage(`Version check failed | 版本检查失败: ${err.message}`);
     }
 }
 

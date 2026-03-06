@@ -1,8 +1,8 @@
 {
   "name": "anyskill",
   "displayName": "AnySkill",
-  "description": "Your personal, free skill management terminal — Store, sync and load AI agent skills across any IDE | 个人免费的 AI 技能管理终端",
-  "version": "0.3.7",
+  "description": "Manage AI agent skills, prompts and rules — load on demand via natural language or GUI. Works with Cursor, Claude Code, Antigravity, Copilot. Private GitHub-backed skill library with curated Skill Packs | AI 技能管理终端，自然语言 + GUI 双通道",
+  "version": "0.4.3",
   "icon": "resources/anyskill-icon.png",
   "publisher": "anyskill",
   "license": "MIT",
@@ -11,20 +11,32 @@
   },
   "categories": [
     "Machine Learning",
+    "Snippets",
     "Other"
   ],
   "keywords": [
+    "ai",
+    "ai-skills",
+    "ai-agent",
     "skill",
     "skills",
-    "ai",
-    "ai-skill",
-    "anyskill",
     "agent",
-    "ai-agent",
+    "skill-management",
+    "prompt-management",
+    "cursor-rules",
+    "claude-code",
+    "copilot",
+    "antigravity",
+    "agent-skills",
     "agent-library",
     "skill-library",
-    "skill-management",
-    "developer-tools"
+    "skill-packs",
+    "anyskill",
+    "ai-prompt",
+    "coding-assistant",
+    "developer-tools",
+    "rules",
+    "rule"
   ],
   "repository": {
     "type": "git",
@@ -46,12 +58,12 @@
       "anyskill-sidebar": [
         {
           "id": "anyskillSkills",
-          "name": "我的技能",
+          "name": "My Skills | 我的技能",
           "icon": "$(symbol-method)"
         },
         {
           "id": "anyskillPacks",
-          "name": "组合包",
+          "name": "Packs | 组合包",
           "icon": "$(package)"
         }
       ]
@@ -59,7 +71,7 @@
     "viewsWelcome": [
       {
         "view": "anyskillSkills",
-        "contents": "欢迎使用 AnySkill！\n你的私人 AI 技能空间。\n[初始化配置](command:anyskill.init)\n[导入已有技能](command:anyskill.importSkill)",
+        "contents": "Welcome to AnySkill!\nYour personal AI skill library.\n[Initialize | 初始化配置](command:anyskill.init)\n[Import Skills | 导入已有技能](command:anyskill.importSkill)",
         "when": "!anyskill.configured"
       }
     ],
@@ -227,17 +239,17 @@
         "anyskill.repo": {
           "type": "string",
           "default": "",
-          "description": "GitHub 技能仓库地址 (格式: 用户名/仓库名)"
+          "description": "GitHub skill repository (format: username/repo-name) | GitHub 技能仓库 (格式: 用户名/仓库名)"
         },
         "anyskill.branch": {
           "type": "string",
           "default": "main",
-          "description": "仓库分支"
+          "description": "Repository branch | 仓库分支"
         },
         "anyskill.localPath": {
           "type": "string",
           "default": "",
-          "description": "本地仓库克隆路径"
+          "description": "Local clone path | 本地仓库克隆路径"
         }
       }
     }

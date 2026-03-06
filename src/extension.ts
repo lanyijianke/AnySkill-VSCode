@@ -47,7 +47,7 @@ export function activate(context: vscode.ExtensionContext) {
         100
     );
     statusBarItem.text = '$(brain) AnySkill';
-    statusBarItem.tooltip = 'AnySkill 技能管理';
+    statusBarItem.tooltip = 'AnySkill Skill Manager | 技能管理';
     statusBarItem.command = 'anyskill.init';
     statusBarItem.show();
     context.subscriptions.push(statusBarItem);
@@ -83,8 +83,8 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('anyskill.downloadSkill', (arg?: SkillTreeItem | PackSkillItem) => {
             if (arg instanceof PackSkillItem) {
-                // For pack skills, treat as downloading from packs
-                downloadSkillCommand(arg.skill);
+                // Pack skills should use the packs install flow (fetches from AnySkill-Packs public repo)
+                installPackCommand(arg);
             } else {
                 downloadSkillCommand(arg);
             }
@@ -157,23 +157,19 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('anyskill.welcome', () => {
             vscode.window.showInformationMessage(
-                'AnySkill — 你的私人 AI 技能空间',
-                '初始化配置',
-                '导入已有技能',
-                '查看文档'
+                'AnySkill — Your Personal AI Skill Library',
+                'Initialize | 初始化配置',
+                'Import Skills | 导入已有技能',
+                'Docs | 查看文档'
             ).then((action) => {
-                if (action === '初始化配置') { vscode.commands.executeCommand('anyskill.init'); }
-                if (action === '导入已有技能') { vscode.commands.executeCommand('anyskill.importSkill'); }
-                if (action === '查看文档') { vscode.env.openExternal(vscode.Uri.parse('https://github.com/lanyijianke/AnySkill')); }
+                if (action === 'Initialize | 初始化配置') { vscode.commands.executeCommand('anyskill.init'); }
+                if (action === 'Import Skills | 导入已有技能') { vscode.commands.executeCommand('anyskill.importSkill'); }
+                if (action === 'Docs | 查看文档') { vscode.env.openExternal(vscode.Uri.parse('https://github.com/lanyijianke/AnySkill')); }
             });
         })
     );
 
-    // ── Silent Version Check on Activation ─────
-    setTimeout(() => {
-        // Run a silent version check 5 seconds after activation
-        checkUpdateCommand().catch(() => { });
-    }, 5000);
+    // Version check removed from auto-activation — users can run it manually via Command Palette
 }
 
 export function deactivate() {

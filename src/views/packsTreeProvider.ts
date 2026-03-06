@@ -9,17 +9,18 @@ export class PackCategoryItem extends vscode.TreeItem {
 
         // Map category names to display names and icons
         const displayMap: Record<string, { label: string; icon: string }> = {
-            'core-enhancement': { label: '核心增强', icon: 'lightbulb' },
-            'tech-development': { label: '技术开发', icon: 'code' },
-            'content-creation': { label: '内容创作', icon: 'edit' },
-            'data-crawling': { label: '数据采集', icon: 'search' },
-            'communication': { label: '通信集成', icon: 'comment-discussion' },
+            'core-enhancement': { label: 'Core Enhancement | 核心增强', icon: 'lightbulb' },
+            'tech-development': { label: 'Tech Development | 技术开发', icon: 'code' },
+            'content-creation': { label: 'Content Creation | 内容创作', icon: 'edit' },
+            'data-crawling': { label: 'Data Collection | 数据采集', icon: 'search' },
+            'communication': { label: 'Communication | 通信集成', icon: 'comment-discussion' },
+            'office-operations': { label: 'Office Operations | 办公运营', icon: 'briefcase' },
         };
 
         const display = displayMap[pack.category] || { label: pack.category, icon: 'package' };
         this.label = display.label;
         this.iconPath = new vscode.ThemeIcon(display.icon);
-        this.description = `${pack.skills.length} 个技能`;
+        this.description = `${pack.skills.length} skills | ${pack.skills.length} 个技能`;
     }
 }
 
@@ -76,14 +77,14 @@ export class PacksTreeProvider implements vscode.TreeDataProvider<vscode.TreeIte
             this.packs = index.packs;
 
             if (this.packs.length === 0) {
-                const item = new vscode.TreeItem('暂无组合包');
+                const item = new vscode.TreeItem('No packs available | 暂无组合包');
                 item.iconPath = new vscode.ThemeIcon('info');
                 return [item];
             }
 
             return this.packs.map((pack) => new PackCategoryItem(pack));
         } catch (err: any) {
-            const item = new vscode.TreeItem(`加载失败: ${err.message}`);
+            const item = new vscode.TreeItem(`Load failed | 加载失败: ${err.message}`);
             item.iconPath = new vscode.ThemeIcon('error');
             item.iconPath = new vscode.ThemeIcon('error');
             return [item];
