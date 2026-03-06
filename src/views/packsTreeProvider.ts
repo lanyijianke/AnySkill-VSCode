@@ -38,6 +38,13 @@ export class PackSkillItem extends vscode.TreeItem {
             : '';
         this.contextValue = 'packSkill';
         this.iconPath = new vscode.ThemeIcon('symbol-method');
+
+        // Click to view detail
+        this.command = {
+            command: 'anyskill.viewSkillDetail',
+            title: 'View Skill Detail | 查看技能详情',
+            arguments: [this],
+        };
     }
 }
 

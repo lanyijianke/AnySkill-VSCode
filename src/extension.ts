@@ -110,9 +110,11 @@ export function activate(context: vscode.ExtensionContext) {
 
     // View skill detail (Webview)
     context.subscriptions.push(
-        vscode.commands.registerCommand('anyskill.viewSkillDetail', (arg?: SkillTreeItem) => {
+        vscode.commands.registerCommand('anyskill.viewSkillDetail', (arg?: SkillTreeItem | PackSkillItem) => {
             if (arg instanceof SkillTreeItem) {
                 createSkillDetailPanel(context, arg.skill);
+            } else if (arg instanceof PackSkillItem) {
+                createSkillDetailPanel(context, arg.skill, true);
             }
         })
     );

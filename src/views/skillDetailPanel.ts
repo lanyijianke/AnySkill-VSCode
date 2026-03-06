@@ -7,7 +7,8 @@ import { discoverConfig, getToken } from '../config';
  */
 export function createSkillDetailPanel(
   context: vscode.ExtensionContext,
-  skill: SkillEntry
+  skill: SkillEntry,
+  isPack: boolean = false
 ): vscode.WebviewPanel {
   const panel = vscode.window.createWebviewPanel(
     'anyskillDetail',
@@ -31,13 +32,14 @@ export function createSkillDetailPanel(
   panel.webview.html = getLoadingHtml(skill.name, codiconCssUri);
 
   // Load actual content
-  loadSkillContent(panel, skill, codiconCssUri);
+  loadSkillContent(panel, skill, codiconCssUri, isPack);
 
   // Handle messages from webview
   panel.webview.onDidReceiveMessage(
     async (message) => {
       switch (message.command) {
         case 'download':
+        case 'install':
           vscode.commands.executeCommand('anyskill.downloadSkill', skill);
           break;
         case 'load':
@@ -62,7 +64,8 @@ export function createSkillDetailPanel(
 async function loadSkillContent(
   panel: vscode.WebviewPanel,
   skill: SkillEntry,
-  codiconCssUri: vscode.Uri
+  codiconCssUri: vscode.Uri,
+  isPack: boolean = false
 ): Promise<void> {
   try {
     const config = discoverConfig();
@@ -75,9 +78,15 @@ async function loadSkillContent(
     const client = new GitHubClient(config.repo, config.branch, token);
 
     // Fetch the main SKILL.md content
-    const content = await client.fetchFileContent(skill.file);
+    let content: string;
+    if (isPack) {
+      // Pack skills: fetch from public AnySkill-Packs repo
+      content = await client.fetchPackFile(skill.file);
+    } else {
+      content = await client.fetchFileContent(skill.file);
+    }
 
-    panel.webview.html = getDetailHtml(skill, content, codiconCssUri);
+    panel.webview.html = getDetailHtml(skill, content, codiconCssUri, isPack);
   } catch (err: any) {
     panel.webview.html = getErrorHtml(`Load failed | 加载失败: ${err.message}`, codiconCssUri);
   }
@@ -122,7 +131,7 @@ function getErrorHtml(message: string, codiconCssUri: vscode.Uri): string {
 </html>`;
 }
 
-function getDetailHtml(skill: SkillEntry, content: string, codiconCssUri: vscode.Uri): string {
+function getDetailHtml(skill: SkillEntry, content: string, codiconCssUri: vscode.Uri, isPack: boolean = false): string {
   // Extract frontmatter
   const fmMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
   let bodyContent = content;
@@ -168,18 +177,26 @@ function getDetailHtml(skill: SkillEntry, content: string, codiconCssUri: vscode
 
     <!-- Action Buttons -->
     <div class="actions">
+      ${isPack ? `
+      <button class="btn btn-primary" onclick="sendMessage('install')">
+        <span class="codicon codicon-cloud-download"></span> Install | 安装到仓库
+      </button>
+      ` : `
       <button class="btn btn-primary" onclick="sendMessage('download')">
         <span class="codicon codicon-cloud-download"></span> Download | 下载到本地
       </button>
+      `}
       <button class="btn btn-secondary" onclick="sendMessage('load')">
         <span class="codicon codicon-eye"></span> Load to Editor | 加载到编辑器
       </button>
       <button class="btn btn-ghost" onclick="copyContent()">
         <span class="codicon codicon-copy"></span> Copy | 复制内容
       </button>
+      ${isPack ? '' : `
       <button class="btn btn-danger" onclick="confirmDelete()">
         <span class="codicon codicon-trash"></span> Delete | 删除
       </button>
+      `}
     </div>
 
     <!-- Files List -->
