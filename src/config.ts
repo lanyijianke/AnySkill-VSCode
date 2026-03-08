@@ -7,7 +7,7 @@ export interface AnySkillConfig {
     repo: string;
     branch: string;
     token?: string;
-    localPath: string;
+    localPath?: string;
 }
 
 const GLOBAL_CONFIG_PATH = path.join(os.homedir(), '.anyskill', 'config.json');

@@ -3,7 +3,6 @@ import * as path from 'path';
 import * as os from 'os';
 import { discoverConfig, getToken, saveGlobalConfig, AnySkillConfig } from '../config';
 import { GitHubClient } from '../github';
-import { cloneRepo } from '../git';
 
 /**
  * Initialize AnySkill configuration.
@@ -136,63 +135,36 @@ export async function initCommand(): Promise<void> {
         return;
     }
 
-    // Step 3: Clone and save config
-    const defaultPath = path.join(os.homedir(), '.anyskill', 'repo');
-    const localPath = await vscode.window.showInputBox({
-        title: 'AnySkill: Local Path | 本地路径',
-        prompt: 'Choose where to clone the repo | 选择仓库克隆路径',
-        value: defaultPath,
-        ignoreFocusOut: true,
-    });
+    // Step 3: Save config (no clone needed — all operations use GitHub API)
+    const config: AnySkillConfig = {
+        repo: repo!,
+        branch,
+        token,
+    };
 
-    if (!localPath) {
-        return;
-    }
+    saveGlobalConfig(config);
 
-    // Clone with progress
-    await vscode.window.withProgress(
-        {
-            location: vscode.ProgressLocation.Notification,
-            title: 'AnySkill',
-            cancellable: false,
-        },
-        async (progress) => {
-            try {
-                progress.report({ message: 'Cloning repo... | 正在克隆仓库...' });
+    // Refresh views
+    vscode.commands.executeCommand('anyskill.refreshSkills');
+    vscode.commands.executeCommand('anyskill.refreshPacks');
 
-                const fs = await import('fs');
-                if (!fs.existsSync(localPath!)) {
-                    await cloneRepo(repo!, localPath!, token);
-                }
-
-                progress.report({ message: 'Saving config... | 正在保存配置...' });
-
-                const config: AnySkillConfig = {
-                    repo: repo!,
-                    branch,
-                    token,
-                    localPath: localPath!,
-                };
-
-                saveGlobalConfig(config);
-
-                // Refresh views
-                vscode.commands.executeCommand('anyskill.refreshSkills');
-                vscode.commands.executeCommand('anyskill.refreshPacks');
-
-                // Set configured context
-                vscode.commands.executeCommand('setContext', 'anyskill.configured', true);
-            } catch (err: any) {
-                vscode.window.showErrorMessage(`Config failed | 配置失败: ${err.message}`);
-                return;
-            }
-        }
-    );
+    // Set configured context
+    vscode.commands.executeCommand('setContext', 'anyskill.configured', true);
 
     // Step 4: Download engine to current workspace
     await downloadEngine(token);
 
     vscode.window.showInformationMessage(`AnySkill configured! Repo: ${repo} | 配置完成！仓库: ${repo}`);
+
+    // Upgrade notice: if old config had localPath, notify user
+    const oldLocalPath = path.join(os.homedir(), '.anyskill', 'repo');
+    const fs = await import('fs');
+    if (fs.existsSync(oldLocalPath)) {
+        vscode.window.showInformationMessage(
+            'AnySkill now operates via cloud API. The local clone at ~/.anyskill/repo is no longer needed and can be safely deleted. | 现已改为云端 API 模式，~/.anyskill/repo 可安全删除。',
+            'OK | 好的'
+        );
+    }
 }
 
 /**
@@ -220,6 +192,9 @@ async function downloadEngine(token: string): Promise<void> {
     } else if (fs.existsSync(path.join(root, '.cursor'))) {
         skillDir = path.join(root, '.cursor', 'rules', 'anyskill');
         detectedIDE = 'Cursor';
+    } else if (fs.existsSync(path.join(root, '.codex'))) {
+        skillDir = path.join(root, '.codex', 'skills', 'anyskill');
+        detectedIDE = 'Codex';
     } else if (fs.existsSync(path.join(root, '.openclaw'))) {
         skillDir = path.join(root, '.openclaw', 'skills', 'anyskill');
         detectedIDE = 'OpenClaw';
@@ -245,6 +220,7 @@ async function downloadEngine(token: string): Promise<void> {
                 { label: 'Antigravity (.agent/skills/)', value: path.join(root, '.agent', 'skills', 'anyskill') },
                 { label: 'Claude Code (.claude/skills/)', value: path.join(root, '.claude', 'skills', 'anyskill') },
                 { label: 'Cursor (.cursor/rules/)', value: path.join(root, '.cursor', 'rules', 'anyskill') },
+                { label: 'Codex (.codex/skills/)', value: path.join(root, '.codex', 'skills', 'anyskill') },
                 { label: 'OpenClaw (.openclaw/skills/)', value: path.join(root, '.openclaw', 'skills', 'anyskill') },
             ],
             { title: 'Select install location | 选择安装位置', placeHolder: 'Choose your AI IDE | 选择你使用的 AI IDE' }

@@ -1,9 +1,6 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
-import * as path from 'path';
 import { discoverConfig, getToken } from '../config';
 import { GitHubClient, PackEntry, SkillEntry } from '../github';
-import { addCommitPush } from '../git';
 import { PackCategoryItem, PackSkillItem } from '../views/packsTreeProvider';
 
 /**
@@ -12,7 +9,7 @@ import { PackCategoryItem, PackSkillItem } from '../views/packsTreeProvider';
 export async function installPackCommand(arg?: PackCategoryItem | PackSkillItem): Promise<void> {
     try {
         const config = discoverConfig();
-        if (!config || !config.localPath) {
+        if (!config) {
             vscode.window.showErrorMessage('Please run "AnySkill: Initialize" first | 请先初始化');
             return;
         }
@@ -54,7 +51,7 @@ export async function installPackCommand(arg?: PackCategoryItem | PackSkillItem)
 
         if (singleSkill) {
             // Install a single skill from packs
-            await installPackSkills(client, config, [singleSkill]);
+            await installPackSkills(client, [singleSkill]);
         } else if (pack) {
             if (pack.skills.length === 0) {
                 vscode.window.showInformationMessage(`Pack ${pack.category} has no skills | 暂无技能`);
@@ -69,7 +66,7 @@ export async function installPackCommand(arg?: PackCategoryItem | PackSkillItem)
 
             if (confirm !== 'Install | 安装') { return; }
 
-            await installPackSkills(client, config, pack.skills, pack.category);
+            await installPackSkills(client, pack.skills, pack.category);
         }
 
         vscode.commands.executeCommand('anyskill.refreshSkills');
@@ -79,11 +76,10 @@ export async function installPackCommand(arg?: PackCategoryItem | PackSkillItem)
 }
 
 /**
- * Install an array of pack skills into the user's private repo
+ * Install an array of pack skills into the user's private repo via GitHub API
  */
 async function installPackSkills(
     client: GitHubClient,
-    config: any,
     skills: SkillEntry[],
     category?: string
 ): Promise<void> {
@@ -107,11 +103,6 @@ async function installPackSkills(
                 });
 
                 try {
-                    const skillDir = path.join(config.localPath, 'skills', skill.name);
-                    if (!fs.existsSync(skillDir)) {
-                        fs.mkdirSync(skillDir, { recursive: true });
-                    }
-
                     for (const file of skill.files) {
                         const content = await client.fetchPackFile(file);
                         // Files are like "core-enhancement/skill-name/SKILL.md"
@@ -119,33 +110,19 @@ async function installPackSkills(
                         const relativeParts = file.split('/');
                         // Remove the category prefix, keep skill-name/filename
                         const targetParts = relativeParts.slice(1);
-                        const targetPath = path.join(config.localPath, 'skills', ...targetParts);
-                        const targetDir = path.dirname(targetPath);
+                        const remotePath = `skills/${targetParts.join('/')}`;
 
-                        if (!fs.existsSync(targetDir)) {
-                            fs.mkdirSync(targetDir, { recursive: true });
-                        }
-                        fs.writeFileSync(targetPath, content, 'utf-8');
+                        await client.createOrUpdateFile(
+                            remotePath,
+                            content,
+                            `feat: install pack skill ${skill.name}`
+                        );
                     }
 
                     success++;
                 } catch {
                     failed++;
                     failedNames.push(skill.name);
-                }
-            }
-
-            // Git push if anything was installed
-            if (success > 0) {
-                try {
-                    progress.report({ message: 'Pushing to repo... | 正在推送...' });
-                    await addCommitPush(
-                        config.localPath,
-                        `feat: install pack ${category || 'skills'}`,
-                        config.branch
-                    );
-                } catch (err: any) {
-                    vscode.window.showWarningMessage(`Push failed | 推送失败: ${err.message}`);
                 }
             }
 

@@ -93,7 +93,6 @@ export class PacksTreeProvider implements vscode.TreeDataProvider<vscode.TreeIte
         } catch (err: any) {
             const item = new vscode.TreeItem(`Load failed | 加载失败: ${err.message}`);
             item.iconPath = new vscode.ThemeIcon('error');
-            item.iconPath = new vscode.ThemeIcon('error');
             return [item];
         }
     }

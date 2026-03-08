@@ -187,7 +187,7 @@ function getDetailHtml(skill: SkillEntry, content: string, codiconCssUri: vscode
       </button>
       `}
       <button class="btn btn-secondary" onclick="sendMessage('load')">
-        <span class="codicon codicon-eye"></span> Load to Editor | 加载到编辑器
+        <span class="codicon codicon-cloud"></span> Edit in Cloud | 云端编辑
       </button>
       <button class="btn btn-ghost" onclick="copyContent()">
         <span class="codicon codicon-copy"></span> Copy | 复制内容

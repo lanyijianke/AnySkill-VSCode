@@ -101,7 +101,7 @@ export class SkillsTreeProvider implements vscode.TreeDataProvider<vscode.TreeIt
             return [];
         }
 
-        // Root level: load skills
+        // Root level: load skills from cloud
         const config = discoverConfig();
         if (!config) {
             const item = new vscode.TreeItem('Click to initialize AnySkill | 点击初始化 AnySkill');
@@ -114,36 +114,6 @@ export class SkillsTreeProvider implements vscode.TreeDataProvider<vscode.TreeIt
         }
 
         try {
-            // Priority 1: Try local skills directory (instant, no network)
-            if (config.localPath) {
-                const localSkills = this.scanLocalSkills(config.localPath);
-                const localCategories = this.getCategories(config.localPath);
-                if (localSkills.length > 0 || localCategories.length > 0) {
-                    this.skills = localSkills;
-                    this.loadError = null;
-                    return this.buildTree(this.skills, config.localPath);
-                }
-            }
-
-            // Priority 2: Try local index.json
-            if (config.localPath) {
-                const localIndex = path.join(config.localPath, 'index.json');
-                if (fs.existsSync(localIndex)) {
-                    try {
-                        const raw = fs.readFileSync(localIndex, 'utf-8');
-                        const parsed = JSON.parse(raw);
-                        if (Array.isArray(parsed) && parsed.length > 0) {
-                            this.skills = parsed;
-                            this.loadError = null;
-                            return this.buildTree(this.skills, config.localPath);
-                        }
-                    } catch {
-                        // ignore, fall to remote
-                    }
-                }
-            }
-
-            // Priority 3: Remote index.json
             const token = getToken(config);
             const client = new GitHubClient(config.repo, config.branch, token);
             this.skills = await client.fetchIndex();
@@ -159,7 +129,7 @@ export class SkillsTreeProvider implements vscode.TreeDataProvider<vscode.TreeIt
                 return [item];
             }
 
-            return this.buildTree(this.skills, config?.localPath);
+            return this.buildTree(this.skills);
         } catch (err: any) {
             this.loadError = err.message;
             const item = new vscode.TreeItem(`Load failed | 加载失败: ${err.message}`);
@@ -172,9 +142,8 @@ export class SkillsTreeProvider implements vscode.TreeDataProvider<vscode.TreeIt
      * Build the tree: group skills by category.
      * Skills with a category become children of CategoryItem nodes.
      * Skills without a category appear at root level.
-     * Also shows empty category folders from the local filesystem.
      */
-    private buildTree(skills: SkillEntry[], localPath?: string): vscode.TreeItem[] {
+    private buildTree(skills: SkillEntry[]): vscode.TreeItem[] {
         const categories = new Map<string, SkillEntry[]>();
         const uncategorized: SkillEntry[] = [];
 
@@ -185,16 +154,6 @@ export class SkillsTreeProvider implements vscode.TreeDataProvider<vscode.TreeIt
                 categories.set(skill.category, list);
             } else {
                 uncategorized.push(skill);
-            }
-        }
-
-        // Also include empty category folders from filesystem
-        if (localPath) {
-            const fsFolders = this.getCategories(localPath);
-            for (const folder of fsFolders) {
-                if (!categories.has(folder)) {
-                    categories.set(folder, []);
-                }
             }
         }
 

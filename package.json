@@ -2,7 +2,7 @@
   "name": "anyskill",
   "displayName": "AnySkill",
   "description": "Manage AI agent skills, prompts and rules — load on demand via natural language or GUI. Works with Cursor, Claude Code, Antigravity, Copilot. Private GitHub-backed skill library with curated Skill Packs | AI 技能管理终端，自然语言 + GUI 双通道",
-  "version": "0.4.4",
+  "version": "0.5.1",
   "icon": "resources/anyskill-icon.png",
   "publisher": "anyskill",
   "license": "MIT",
@@ -88,8 +88,8 @@
       },
       {
         "command": "anyskill.loadSkill",
-        "title": "AnySkill: Load Skill | 加载技能",
-        "icon": "$(eye)"
+        "title": "AnySkill: Edit in Cloud | 云端编辑",
+        "icon": "$(cloud)"
       },
       {
         "command": "anyskill.downloadSkill",
@@ -155,6 +155,16 @@
         "command": "anyskill.moveSkill",
         "title": "AnySkill: Move Skill | 移动技能",
         "icon": "$(move)"
+      },
+      {
+        "command": "anyskill.pushSkill",
+        "title": "AnySkill: Push Skill to Cloud | 推送技能到云端",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "anyskill.pullSkill",
+        "title": "AnySkill: Pull from Cloud | 从云端更新",
+        "icon": "$(cloud-download)"
       }
     ],
     "menus": {
@@ -231,6 +241,40 @@
           "when": "view == anyskillSkills && viewItem == category",
           "group": "inline"
         }
+      ],
+      "explorer/context": [
+        {
+          "command": "anyskill.pushSkill",
+          "when": "resourceFilename == SKILL.md",
+          "group": "anyskill@1"
+        },
+        {
+          "command": "anyskill.pullSkill",
+          "when": "resourceFilename == SKILL.md",
+          "group": "anyskill@2"
+        },
+        {
+          "command": "anyskill.pushSkill",
+          "when": "explorerResourceIsFolder && resourcePath =~ /skills/",
+          "group": "anyskill@1"
+        },
+        {
+          "command": "anyskill.pullSkill",
+          "when": "explorerResourceIsFolder && resourcePath =~ /skills/",
+          "group": "anyskill@2"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "anyskill.pushSkill",
+          "when": "resourceFilename == SKILL.md",
+          "group": "navigation"
+        },
+        {
+          "command": "anyskill.pullSkill",
+          "when": "resourceFilename == SKILL.md",
+          "group": "navigation"
+        }
       ]
     },
     "configuration": {
@@ -264,12 +308,13 @@
   "devDependencies": {
     "@types/node": "^20.11.0",
     "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^8.56.1",
+    "@typescript-eslint/parser": "^8.56.1",
     "esbuild": "^0.20.0",
     "eslint": "^8.56.0",
     "typescript": "^5.3.0"
   },
   "dependencies": {
-    "@vscode/codicons": "^0.0.44",
-    "simple-git": "^3.22.0"
+    "@vscode/codicons": "^0.0.44"
   }
 }
