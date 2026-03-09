@@ -330,7 +330,14 @@ export async function downloadSkillCommand(arg?: SkillTreeItem | SkillEntry): Pr
                         content = await client.fetchFileContent(file);
                     }
 
-                    const targetPath = path.join(skillDir, ...file.split('/').slice(1));
+                    // Calculate path relative to the skill folder (not the skills root)
+                    // e.g. file = "元技能/skill-writer/SKILL.md", skill.path = "元技能/skill-writer"
+                    //      → relative = "SKILL.md"
+                    const skillBasePath = skill.path || skill.name;
+                    const relativeName = file.startsWith(skillBasePath + '/')
+                        ? file.substring(skillBasePath.length + 1)
+                        : file.split('/').pop()!;
+                    const targetPath = path.join(skillDir, relativeName);
                     const targetDir = path.dirname(targetPath);
 
                     if (!fs.existsSync(targetDir)) {
@@ -397,7 +404,11 @@ export async function syncAllCommand(): Promise<void> {
 
                         for (const file of skill.files) {
                             const content = await client.fetchFileContent(file);
-                            const targetPath = path.join(skillDir, ...file.split('/').slice(1));
+                            const skillBasePath = skill.path || skill.name;
+                            const relativeName = file.startsWith(skillBasePath + '/')
+                                ? file.substring(skillBasePath.length + 1)
+                                : file.split('/').pop()!;
+                            const targetPath = path.join(skillDir, relativeName);
                             const targetDir = path.dirname(targetPath);
 
                             if (!fs.existsSync(targetDir)) {
@@ -503,7 +514,11 @@ export async function downloadCategoryCommand(arg?: CategoryItem): Promise<void>
 
                         for (const file of skill.files) {
                             const content = await client.fetchFileContent(file);
-                            const targetPath = path.join(skillDir, ...file.split('/').slice(1));
+                            const skillBasePath = skill.path || skill.name;
+                            const relativeName = file.startsWith(skillBasePath + '/')
+                                ? file.substring(skillBasePath.length + 1)
+                                : file.split('/').pop()!;
+                            const targetPath = path.join(skillDir, relativeName);
                             const targetDir = path.dirname(targetPath);
 
                             if (!fs.existsSync(targetDir)) {

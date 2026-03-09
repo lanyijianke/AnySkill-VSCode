@@ -2,7 +2,7 @@
   "name": "anyskill",
   "displayName": "AnySkill",
   "description": "Manage AI agent skills, prompts and rules — load on demand via natural language or GUI. Works with Cursor, Claude Code, Antigravity, Copilot. Private GitHub-backed skill library with curated Skill Packs | AI 技能管理终端，自然语言 + GUI 双通道",
-  "version": "0.6.5",
+  "version": "0.6.6",
   "icon": "resources/anyskill-icon.png",
   "publisher": "anyskill",
   "license": "MIT",
