@@ -19,6 +19,16 @@ function getLocalPath(): string {
     return config.localPath || getDefaultLocalPath();
 }
 
+/**
+ * After any API-based write to the remote repo, pull changes to keep local clone in sync.
+ */
+function syncLocalAfterApiWrite(): void {
+    try {
+        const { gitPull } = require('../git');
+        gitPull(getLocalPath());
+    } catch { /* ignore — offline or no local clone */ }
+}
+
 // ── Cloud Edit Session Tracking ────────────────────
 const CLOUD_EDIT_DIR = path.join(os.tmpdir(), 'anyskill-cloud');
 
@@ -228,6 +238,7 @@ async function doPush(filePath: string, session: CloudEditSession, newContent: s
         vscode.window.showInformationMessage(
             `☁ "${session.skillName}" pushed to cloud | 已推送到云端`
         );
+        syncLocalAfterApiWrite();
         vscode.commands.executeCommand('anyskill.refreshSkills');
     } catch (err: any) {
         vscode.window.showErrorMessage(
@@ -291,7 +302,10 @@ export async function downloadSkillCommand(arg?: SkillTreeItem | SkillEntry): Pr
             }
         }
 
-        // ── Download all files ──
+        // ── Download all files (prefer local clone, fallback to API) ──
+        const localClone = getLocalPath();
+        const localSkillsDir = path.join(localClone, 'skills');
+
         await vscode.window.withProgress(
             {
                 location: vscode.ProgressLocation.Notification,
@@ -306,7 +320,16 @@ export async function downloadSkillCommand(arg?: SkillTreeItem | SkillEntry): Pr
                         increment: (1 / skill.files.length) * 100,
                     });
 
-                    const content = await client.fetchFileContent(file);
+                    // Try local clone first
+                    const localFile = path.join(localSkillsDir, file);
+                    let content: string;
+                    if (fs.existsSync(localFile)) {
+                        content = fs.readFileSync(localFile, 'utf-8');
+                    } else {
+                        // Fallback to API
+                        content = await client.fetchFileContent(file);
+                    }
+
                     const targetPath = path.join(skillDir, ...file.split('/').slice(1));
                     const targetDir = path.dirname(targetPath);
 
@@ -399,6 +422,112 @@ export async function syncAllCommand(): Promise<void> {
 }
 
 /**
+ * Mode 3b — Download all skills in a category folder
+ */
+export async function downloadCategoryCommand(arg?: CategoryItem): Promise<void> {
+    try {
+        const { client } = getClient();
+
+        let categoryName: string | undefined;
+        let categorySkills: SkillEntry[] = [];
+
+        if (arg instanceof CategoryItem) {
+            categoryName = arg.categoryName;
+            categorySkills = arg.skills;
+        } else {
+            // Let user pick a category
+            const provider = SkillsTreeProvider.instance;
+            const allSkills = provider?.getSkills() || [];
+            const catMap = new Map<string, SkillEntry[]>();
+            for (const s of allSkills) {
+                if (s.category) {
+                    const list = catMap.get(s.category) || [];
+                    list.push(s);
+                    catMap.set(s.category, list);
+                }
+            }
+
+            if (catMap.size === 0) {
+                vscode.window.showInformationMessage('No category folders | 暂无分类文件夹');
+                return;
+            }
+
+            const picked = await vscode.window.showQuickPick(
+                [...catMap.entries()].map(([cat, skills]) => ({
+                    label: `$(folder) ${cat}`,
+                    description: `${skills.length} skills`,
+                    value: cat,
+                })),
+                { title: 'Select folder to download | 选择要下载的文件夹' }
+            );
+            if (!picked) { return; }
+            categoryName = picked.value;
+            categorySkills = catMap.get(categoryName) || [];
+        }
+
+        if (!categoryName || categorySkills.length === 0) {
+            vscode.window.showInformationMessage(`Folder "${categoryName}" is empty | 文件夹为空`);
+            return;
+        }
+
+        const confirm = await vscode.window.showInformationMessage(
+            `Download ${categorySkills.length} skills from "${categoryName}"? | 下载 ${categorySkills.length} 个技能？`,
+            'Download | 下载',
+            'Cancel | 取消'
+        );
+
+        if (confirm !== 'Download | 下载') { return; }
+
+        await vscode.window.withProgress(
+            {
+                location: vscode.ProgressLocation.Notification,
+                title: `Downloading "${categoryName}"... | 正在下载...`,
+                cancellable: true,
+            },
+            async (progress, cancelToken) => {
+                let completed = 0;
+                let failed = 0;
+
+                for (const skill of categorySkills) {
+                    if (cancelToken.isCancellationRequested) { break; }
+
+                    progress.report({
+                        message: `${completed + 1}/${categorySkills.length}: ${skill.name}`,
+                        increment: (1 / categorySkills.length) * 100,
+                    });
+
+                    try {
+                        // Include category folder in the path: e.g. .agent/skills/开发辅助/context7/
+                        const skillDir = await determineSkillDir(`${categoryName}/${skill.name}`, completed === 0);
+                        if (!skillDir) { continue; }
+
+                        for (const file of skill.files) {
+                            const content = await client.fetchFileContent(file);
+                            const targetPath = path.join(skillDir, ...file.split('/').slice(1));
+                            const targetDir = path.dirname(targetPath);
+
+                            if (!fs.existsSync(targetDir)) {
+                                fs.mkdirSync(targetDir, { recursive: true });
+                            }
+                            fs.writeFileSync(targetPath, content, 'utf-8');
+                        }
+                        completed++;
+                    } catch {
+                        failed++;
+                    }
+                }
+
+                vscode.window.showInformationMessage(
+                    `"${categoryName}" done! ${completed} downloaded${failed > 0 ? `, ${failed} failed` : ''} | 完成！下载 ${completed} 个${failed > 0 ? `，失败 ${failed} 个` : ''}`
+                );
+            }
+        );
+    } catch (err: any) {
+        vscode.window.showErrorMessage(`Download failed | 下载失败: ${err.message}`);
+    }
+}
+
+/**
  * Mode 4 — Upload skill to cloud repo (via GitHub API)
  */
 export async function uploadSkillCommand(): Promise<void> {
@@ -487,6 +616,7 @@ description: ${description || ''}
                     async () => { await client.createOrUpdateFile(remotePath, content, `feat: add skill ${skillName}`); }
                 );
                 vscode.window.showInformationMessage(`Skill "${skillName}" pushed! | 已推送到云端`);
+                syncLocalAfterApiWrite();
                 vscode.commands.executeCommand('anyskill.refreshSkills');
             }
             return;
@@ -536,6 +666,7 @@ description: ${description || ''}
                 }
             } catch { /* ignore */ }
 
+            syncLocalAfterApiWrite();
             vscode.commands.executeCommand('anyskill.refreshSkills');
         }
     } catch (err: any) {

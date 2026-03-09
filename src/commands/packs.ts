@@ -69,6 +69,15 @@ export async function installPackCommand(arg?: PackCategoryItem | PackSkillItem)
             await installPackSkills(client, pack.skills, pack.category);
         }
 
+        // Sync local clone after API writes
+        try {
+            const { discoverConfig: dc } = await import('../config');
+            const { gitPull, getDefaultLocalPath } = await import('../git');
+            const cfg = dc();
+            const localPath = cfg?.localPath || getDefaultLocalPath();
+            gitPull(localPath);
+        } catch { /* ignore sync errors */ }
+
         vscode.commands.executeCommand('anyskill.refreshSkills');
     } catch (err: any) {
         vscode.window.showErrorMessage(`Install failed | 安装失败: ${err.message}`);

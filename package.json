@@ -2,7 +2,7 @@
   "name": "anyskill",
   "displayName": "AnySkill",
   "description": "Manage AI agent skills, prompts and rules — load on demand via natural language or GUI. Works with Cursor, Claude Code, Antigravity, Copilot. Private GitHub-backed skill library with curated Skill Packs | AI 技能管理终端，自然语言 + GUI 双通道",
-  "version": "0.6.3",
+  "version": "0.6.5",
   "icon": "resources/anyskill-icon.png",
   "publisher": "anyskill",
   "license": "MIT",
@@ -94,6 +94,11 @@
       {
         "command": "anyskill.downloadSkill",
         "title": "AnySkill: Download Skill | 下载技能",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "anyskill.downloadCategory",
+        "title": "AnySkill: Download Folder | 下载整个文件夹",
         "icon": "$(cloud-download)"
       },
       {
@@ -235,6 +240,11 @@
           "command": "anyskill.moveSkill",
           "when": "view == anyskillSkills && viewItem == skill",
           "group": "1_actions@3"
+        },
+        {
+          "command": "anyskill.downloadCategory",
+          "when": "view == anyskillSkills && viewItem == category",
+          "group": "inline"
         },
         {
           "command": "anyskill.deleteFolder",

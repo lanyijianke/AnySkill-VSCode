@@ -6,6 +6,7 @@ import { initCommand } from './commands/init';
 import {
     loadSkillCommand,
     downloadSkillCommand,
+    downloadCategoryCommand,
     syncAllCommand,
     uploadSkillCommand,
     deleteSkillCommand,
@@ -145,6 +146,13 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('anyskill.deleteFolder', (arg?: CategoryItem) => {
             deleteFolderCommand(arg);
+        })
+    );
+
+    // Download category folder (Mode 3b)
+    context.subscriptions.push(
+        vscode.commands.registerCommand('anyskill.downloadCategory', (arg?: CategoryItem) => {
+            downloadCategoryCommand(arg);
         })
     );
 
