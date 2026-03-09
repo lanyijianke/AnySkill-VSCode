@@ -361,13 +361,34 @@ export class GitHubClient {
 
     /**
      * Get category folder names from the skills/ directory in the repo.
+     * Only returns true category folders (directories that do NOT directly contain a skill).
+     * Uses index.json to identify skill directories without extra API calls.
      */
-    async getCategories(): Promise<string[]> {
+    async getCategories(knownSkills?: SkillEntry[]): Promise<string[]> {
         try {
-            const contents = await this.getDirectoryContents('skills');
-            return contents
+            // If caller already has skills, just fetch directory listing (1 request)
+            // Otherwise fetch both in parallel (2 requests)
+            const [contents, skills] = knownSkills
+                ? [await this.getDirectoryContents('skills'), knownSkills]
+                : await Promise.all([
+                    this.getDirectoryContents('skills'),
+                    this.fetchIndex().catch(() => [] as SkillEntry[]),
+                ]);
+
+            const dirs = contents
                 .filter(item => item.type === 'dir')
                 .map(item => item.name);
+
+            // Build a set of top-level skill folder names from index.json
+            // (uncategorized skills live directly under skills/, e.g. skills/agent-browser/SKILL.md)
+            const skillDirNames = new Set(
+                skills
+                    .filter(s => !s.category)
+                    .map(s => (s.path || s.name).split('/')[0])
+            );
+
+            // A directory is a category folder if it's NOT a known skill directory
+            return dirs.filter(d => !skillDirNames.has(d));
         } catch {
             return [];
         }

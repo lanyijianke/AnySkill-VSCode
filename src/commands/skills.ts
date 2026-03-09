@@ -5,6 +5,19 @@ import * as os from 'os';
 import { discoverConfig, getToken } from '../config';
 import { GitHubClient, SkillEntry } from '../github';
 import { SkillTreeItem, CategoryItem, SkillsTreeProvider } from '../views/skillsTreeProvider';
+import { gitPush, getDefaultLocalPath } from '../git';
+
+/**
+ * Get the local clone path. Returns the configured localPath or default.
+ * Also returns the client for API-based operations that still need it.
+ */
+function getLocalPath(): string {
+    const config = discoverConfig();
+    if (!config) {
+        throw new Error('Please run "AnySkill: Initialize" first | 请先运行初始化配置');
+    }
+    return config.localPath || getDefaultLocalPath();
+}
 
 // ── Cloud Edit Session Tracking ────────────────────
 const CLOUD_EDIT_DIR = path.join(os.tmpdir(), 'anyskill-cloud');
@@ -531,14 +544,16 @@ description: ${description || ''}
 }
 
 /**
- * Mode 7 — Delete a skill from cloud repo (via GitHub API)
+ * Mode 7 — Delete a skill (local FS + git push)
  */
 export async function deleteSkillCommand(arg?: SkillTreeItem | SkillEntry): Promise<void> {
     try {
         const skill = await resolveSkill(arg);
         if (!skill) { return; }
 
-        const { client } = getClient();
+        const localPath = getLocalPath();
+        const skillPath = skill.path || skill.name;
+        const skillDir = path.join(localPath, 'skills', skillPath);
 
         const confirm = await vscode.window.showWarningMessage(
             `Delete skill "${skill.name}"? This cannot be undone! | 即将删除，不可撤销！`,
@@ -546,23 +561,17 @@ export async function deleteSkillCommand(arg?: SkillTreeItem | SkillEntry): Prom
             'Delete | 删除'
         );
 
-        if (confirm !== 'Delete | 删除') {
-            return;
-        }
+        if (confirm !== 'Delete | 删除') { return; }
 
         await vscode.window.withProgress(
-            {
-                location: vscode.ProgressLocation.Notification,
-                title: `Deleting ${skill.name}... | 正在删除...`,
-            },
+            { location: vscode.ProgressLocation.Notification, title: `Deleting ${skill.name}... | 正在删除...` },
             async () => {
-                const skillPath = skill.path || skill.file.split('/').slice(0, -1).join('/');
-                await client.deleteDirectory(`skills/${skillPath}`, `feat: remove skill ${skill.name}`);
+                fs.rmSync(skillDir, { recursive: true, force: true });
+                gitPush(localPath, `feat: remove skill ${skill.name}`);
             }
         );
 
         vscode.window.showInformationMessage(`Skill "${skill.name}" deleted | 已删除`);
-
         vscode.commands.executeCommand('anyskill.refreshSkills');
     } catch (err: any) {
         vscode.window.showErrorMessage(`Delete failed | 删除失败: ${err.message}`);
@@ -796,11 +805,11 @@ function collectFilesRecursive(dir: string): string[] {
 }
 
 /**
- * Mode 10a — Create a category folder (via GitHub API)
+ * Mode 10a — Create a category folder (local FS + git push)
  */
 export async function createFolderCommand(): Promise<void> {
     try {
-        const { client } = getClient();
+        const localPath = getLocalPath();
 
         const folderName = await vscode.window.showInputBox({
             title: 'AnySkill: New Category Folder | 新建分类文件夹',
@@ -812,16 +821,10 @@ export async function createFolderCommand(): Promise<void> {
 
         if (!folderName) { return; }
 
-        await vscode.window.withProgress(
-            { location: vscode.ProgressLocation.Notification, title: `Creating folder ${folderName}... | 正在创建...` },
-            async () => {
-                await client.createOrUpdateFile(
-                    `skills/${folderName}/.gitkeep`,
-                    '',
-                    `feat: create category folder ${folderName}`
-                );
-            }
-        );
+        const folderDir = path.join(localPath, 'skills', folderName);
+        fs.mkdirSync(folderDir, { recursive: true });
+        fs.writeFileSync(path.join(folderDir, '.gitkeep'), '', 'utf-8');
+        gitPush(localPath, `feat: create category folder ${folderName}`);
 
         vscode.window.showInformationMessage(`Category folder "${folderName}" created | 已创建`);
         vscode.commands.executeCommand('anyskill.refreshSkills');
@@ -831,19 +834,20 @@ export async function createFolderCommand(): Promise<void> {
 }
 
 /**
- * Mode 10b — Delete a category folder (via GitHub API)
+ * Mode 10b — Delete a category folder (local FS + git push)
  */
 export async function deleteFolderCommand(arg?: CategoryItem): Promise<void> {
     try {
-        const { client } = getClient();
+        const localPath = getLocalPath();
+        const provider = SkillsTreeProvider.instance;
 
         let folderName: string | undefined;
 
         if (arg instanceof CategoryItem) {
             folderName = arg.categoryName;
         } else {
-            // Let user pick from existing cloud category folders
-            const categories = await client.getCategories();
+            // Let user pick from existing local category folders
+            const categories = provider?.getCategories(localPath) || [];
             if (categories.length === 0) {
                 vscode.window.showInformationMessage('No category folders | 暂无分类文件夹');
                 return;
@@ -865,12 +869,9 @@ export async function deleteFolderCommand(arg?: CategoryItem): Promise<void> {
 
         if (confirm !== 'Delete | 删除') { return; }
 
-        await vscode.window.withProgress(
-            { location: vscode.ProgressLocation.Notification, title: `Deleting folder ${folderName}... | 正在删除...` },
-            async () => {
-                await client.deleteDirectory(`skills/${folderName}`, `feat: remove category folder ${folderName}`);
-            }
-        );
+        const folderDir = path.join(localPath, 'skills', folderName);
+        fs.rmSync(folderDir, { recursive: true, force: true });
+        gitPush(localPath, `feat: remove category folder ${folderName}`);
 
         vscode.window.showInformationMessage(`Category folder "${folderName}" deleted | 已删除`);
         vscode.commands.executeCommand('anyskill.refreshSkills');
@@ -880,16 +881,16 @@ export async function deleteFolderCommand(arg?: CategoryItem): Promise<void> {
 }
 
 /**
- * Mode 10c — Move a skill to a different category folder (via GitHub API)
+ * Mode 10c — Move a skill to a different category folder (local FS + git push)
  */
 export async function moveSkillCommand(arg?: SkillTreeItem | SkillEntry): Promise<void> {
     try {
         const skill = await resolveSkill(arg);
         if (!skill) { return; }
 
-        const { client } = getClient();
-
-        const categories = await client.getCategories();
+        const localPath = getLocalPath();
+        const provider = SkillsTreeProvider.instance;
+        const categories = provider?.getCategories(localPath) || [];
 
         const targetItems = [
             { label: '$(symbol-folder) Root (no category) | 顶层（不分类）', description: 'skills/', value: '' },
@@ -921,7 +922,7 @@ export async function moveSkillCommand(arg?: SkillTreeItem | SkillEntry): Promis
         }
 
         // Resolve current path
-        const currentPath = skill.path || skill.file.split('/').slice(0, -1).join('/');
+        const currentPath = skill.path || skill.name;
         const skillDirName = currentPath.split('/').pop() || skill.name;
         const newPath = targetFolder ? `${targetFolder}/${skillDirName}` : skillDirName;
 
@@ -930,32 +931,15 @@ export async function moveSkillCommand(arg?: SkillTreeItem | SkillEntry): Promis
             return;
         }
 
-        await vscode.window.withProgress(
-            { location: vscode.ProgressLocation.Notification, title: `Moving ${skill.name}... | 正在移动...` },
-            async (progress) => {
-                // Step 1: Read all files from source
-                progress.report({ message: 'Reading files... | 正在读取...' });
+        // Local file move
+        const srcDir = path.join(localPath, 'skills', currentPath);
+        const destDir = path.join(localPath, 'skills', newPath);
 
-                const filesToMove: { remotePath: string; content: string }[] = [];
-                for (const file of skill.files) {
-                    const content = await client.fetchFileContent(file);
-                    // Build new path: replace old prefix with new
-                    const fileName = file.split('/').slice(currentPath.split('/').length).join('/');
-                    const newRemotePath = `skills/${newPath}/${fileName}`;
-                    filesToMove.push({ remotePath: newRemotePath, content });
-                }
+        // Ensure destination parent exists
+        fs.mkdirSync(path.dirname(destDir), { recursive: true });
+        fs.renameSync(srcDir, destDir);
 
-                // Step 2: Create files at new location
-                progress.report({ message: 'Creating at new location... | 正在创建...' });
-                for (const f of filesToMove) {
-                    await client.createOrUpdateFile(f.remotePath, f.content, `feat: move skill ${skill.name} to ${targetFolder || 'root'}`);
-                }
-
-                // Step 3: Delete old files
-                progress.report({ message: 'Removing old files... | 正在清理...' });
-                await client.deleteDirectory(`skills/${currentPath}`, `feat: move skill ${skill.name} to ${targetFolder || 'root'}`);
-            }
-        );
+        gitPush(localPath, `feat: move skill ${skill.name} to ${targetFolder || 'root'}`);
 
         const dest = targetFolder ? `${targetFolder}/` : 'root';
         vscode.window.showInformationMessage(`Skill "${skill.name}" moved to ${dest} | 已移动`);

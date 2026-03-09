@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { SkillEntry, GitHubClient } from '../github';
 import { AnySkillConfig, discoverConfig, getToken } from '../config';
+import { gitPull, gitClone, getDefaultLocalPath } from '../git';
 
 export class SkillTreeItem extends vscode.TreeItem {
     constructor(
@@ -66,7 +67,13 @@ export class SkillsTreeProvider implements vscode.TreeDataProvider<vscode.TreeIt
     private skills: SkillEntry[] = [];
     private loadError: string | null = null;
 
-    constructor() { }
+    // Singleton for access from command handlers
+    private static _instance: SkillsTreeProvider;
+    static get instance(): SkillsTreeProvider { return SkillsTreeProvider._instance; }
+
+    constructor() {
+        SkillsTreeProvider._instance = this;
+    }
 
     refresh(): void {
         this.skills = [];
@@ -101,7 +108,7 @@ export class SkillsTreeProvider implements vscode.TreeDataProvider<vscode.TreeIt
             return [];
         }
 
-        // Root level: load skills from cloud
+        // Root level: load skills
         const config = discoverConfig();
         if (!config) {
             const item = new vscode.TreeItem('Click to initialize AnySkill | 点击初始化 AnySkill');
@@ -113,23 +120,35 @@ export class SkillsTreeProvider implements vscode.TreeDataProvider<vscode.TreeIt
             return [item];
         }
 
-        try {
-            const token = getToken(config);
-            const client = new GitHubClient(config.repo, config.branch, token);
-            this.skills = await client.fetchIndex();
-            this.loadError = null;
+        const localPath = config.localPath || getDefaultLocalPath();
 
-            if (this.skills.length === 0) {
-                const item = new vscode.TreeItem('No skills yet, click to upload | 暂无技能，点击上传');
-                item.iconPath = new vscode.ThemeIcon('add');
-                item.command = {
-                    command: 'anyskill.uploadSkill',
-                    title: 'Upload Skill | 上传技能',
-                };
-                return [item];
+        try {
+            // If local clone exists, read from it (fast, instant)
+            if (fs.existsSync(path.join(localPath, '.git'))) {
+                // Pull latest (silent, non-blocking for tree display)
+                try { gitPull(localPath); } catch { /* offline is OK */ }
+
+                return this.loadFromLocal(localPath);
             }
 
-            return this.buildTree(this.skills);
+            // No local clone — try auto-clone
+            if (config.token) {
+                try {
+                    const repoUrl = `https://${config.token}@github.com/${config.repo}.git`;
+                    gitClone(repoUrl, localPath);
+
+                    // Save localPath to config
+                    const { saveGlobalConfig } = await import('../config');
+                    saveGlobalConfig({ ...config, localPath });
+
+                    return this.loadFromLocal(localPath);
+                } catch (cloneErr: any) {
+                    // Clone failed, fall back to API
+                }
+            }
+
+            // Fallback: load from API (for users without git or first-time)
+            return await this.loadFromAPI(config);
         } catch (err: any) {
             this.loadError = err.message;
             const item = new vscode.TreeItem(`Load failed | 加载失败: ${err.message}`);
@@ -139,11 +158,57 @@ export class SkillsTreeProvider implements vscode.TreeDataProvider<vscode.TreeIt
     }
 
     /**
+     * Load skills from local git clone directory.
+     */
+    private loadFromLocal(localPath: string): vscode.TreeItem[] {
+        const skillsDir = path.join(localPath, 'skills');
+        if (!fs.existsSync(skillsDir)) {
+            const item = new vscode.TreeItem('No skills yet, click to upload | 暂无技能，点击上传');
+            item.iconPath = new vscode.ThemeIcon('add');
+            item.command = { command: 'anyskill.uploadSkill', title: 'Upload Skill | 上传技能' };
+            return [item];
+        }
+
+        this.skills = [];
+        this.findSkillsRecursive(skillsDir, skillsDir, this.skills);
+        const localCategories = this.getCategories(localPath);
+        this.loadError = null;
+
+        if (this.skills.length === 0 && localCategories.length === 0) {
+            const item = new vscode.TreeItem('No skills yet, click to upload | 暂无技能，点击上传');
+            item.iconPath = new vscode.ThemeIcon('add');
+            item.command = { command: 'anyskill.uploadSkill', title: 'Upload Skill | 上传技能' };
+            return [item];
+        }
+
+        return this.buildTree(this.skills, localCategories);
+    }
+
+    /**
+     * Fallback: load skills from GitHub API (no local clone).
+     */
+    private async loadFromAPI(config: AnySkillConfig): Promise<vscode.TreeItem[]> {
+        const token = getToken(config);
+        const client = new GitHubClient(config.repo, config.branch, token);
+        this.skills = await client.fetchIndex();
+        this.loadError = null;
+
+        if (this.skills.length === 0) {
+            const item = new vscode.TreeItem('No skills yet, click to upload | 暂无技能，点击上传');
+            item.iconPath = new vscode.ThemeIcon('add');
+            item.command = { command: 'anyskill.uploadSkill', title: 'Upload Skill | 上传技能' };
+            return [item];
+        }
+
+        return this.buildTree(this.skills);
+    }
+
+    /**
      * Build the tree: group skills by category.
      * Skills with a category become children of CategoryItem nodes.
      * Skills without a category appear at root level.
      */
-    private buildTree(skills: SkillEntry[]): vscode.TreeItem[] {
+    private buildTree(skills: SkillEntry[], remoteCategories: string[] = []): vscode.TreeItem[] {
         const categories = new Map<string, SkillEntry[]>();
         const uncategorized: SkillEntry[] = [];
 
@@ -154,6 +219,22 @@ export class SkillsTreeProvider implements vscode.TreeDataProvider<vscode.TreeIt
                 categories.set(skill.category, list);
             } else {
                 uncategorized.push(skill);
+            }
+        }
+
+        // Merge remote categories + optimistic folders so empty folders are visible immediately.
+        // Safety net: also exclude any directory matching a known skill folder name,
+        // even if the stale index.json shows it under a different category.
+        const allSkillFolderNames = new Set(
+            skills.map(s => {
+                const parts = (s.path || s.name).split('/');
+                return parts[parts.length - 1];
+            })
+        );
+        const allRemote = [...remoteCategories];
+        for (const cat of allRemote) {
+            if (!categories.has(cat) && !allSkillFolderNames.has(cat)) {
+                categories.set(cat, []);
             }
         }
 

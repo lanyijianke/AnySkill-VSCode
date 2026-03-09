@@ -135,12 +135,38 @@ export async function initCommand(): Promise<void> {
         return;
     }
 
-    // Step 3: Save config (no clone needed — all operations use GitHub API)
+    // Step 3: Clone repo and save config
+    const { getDefaultLocalPath, gitClone, isGitRepo } = await import('../git');
+    const localPath = getDefaultLocalPath();
     const config: AnySkillConfig = {
         repo: repo!,
         branch,
         token,
+        localPath,
     };
+
+    // Clone if not already cloned
+    const fsModule = await import('fs');
+    if (!fsModule.existsSync(localPath) || !isGitRepo(localPath)) {
+        await vscode.window.withProgress(
+            {
+                location: vscode.ProgressLocation.Notification,
+                title: 'AnySkill: Cloning repo... | 正在克隆仓库...',
+            },
+            async () => {
+                try {
+                    // Remove old directory if exists but not a git repo
+                    if (fsModule.existsSync(localPath)) {
+                        fsModule.rmSync(localPath, { recursive: true, force: true });
+                    }
+                    const repoUrl = `https://${token}@github.com/${repo}.git`;
+                    gitClone(repoUrl, localPath);
+                } catch (err: any) {
+                    vscode.window.showWarningMessage(`Clone failed, will use API mode | 克隆失败，将使用云端模式: ${err.message}`);
+                }
+            }
+        );
+    }
 
     saveGlobalConfig(config);
 
@@ -155,16 +181,6 @@ export async function initCommand(): Promise<void> {
     await downloadEngine(token);
 
     vscode.window.showInformationMessage(`AnySkill configured! Repo: ${repo} | 配置完成！仓库: ${repo}`);
-
-    // Upgrade notice: if old config had localPath, notify user
-    const oldLocalPath = path.join(os.homedir(), '.anyskill', 'repo');
-    const fs = await import('fs');
-    if (fs.existsSync(oldLocalPath)) {
-        vscode.window.showInformationMessage(
-            'AnySkill now operates via cloud API. The local clone at ~/.anyskill/repo is no longer needed and can be safely deleted. | 现已改为云端 API 模式，~/.anyskill/repo 可安全删除。',
-            'OK | 好的'
-        );
-    }
 }
 
 /**

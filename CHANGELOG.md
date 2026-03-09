@@ -1,5 +1,22 @@
 # Changelog | 更新日志
 
+## v0.5.5 — 2025-03-09
+
+### 🔧 Bug Fixes | 修复
+
+- **Empty category folders now visible immediately | 空分类文件夹即时可见**: Creating a new category folder now shows it in the tree view right away.
+  创建空分类文件夹现在会立即显示在树视图中。
+
+- **Skill folders no longer shown as categories | 技能文件夹不再被误显为分类**: Fixed `getCategories()` to use `index.json` to distinguish skill directories from category folders — works across tree view, move, upload, and delete commands.
+  修复 `getCategories()` 使用 `index.json` 区分技能目录和分类文件夹。
+
+### ⚡ Improvements | 改进
+
+- **Faster tree refresh | 更快的树刷新**: Category detection now uses 2 parallel API calls instead of N+1 sequential calls (one per directory). Tree view refreshes should be noticeably faster.
+  分类检测改用 2 个并行请求，替代之前的 N+1 个串行请求，刷新速度显著提升。
+
+---
+
 ## v0.5.0 — 2025-03-08
 
 ### 🚀 New Features | 新功能
